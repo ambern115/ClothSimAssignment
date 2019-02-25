@@ -31,7 +31,9 @@ class SpringSystem {
     float h;
     if (num_springs == 0) { h = floor_height - height + 100; } //place near top of screen
     else { h = (float) (springs.get(num_springs - 1).bottom.y); } // place on bottom of last spring
-    PtVector top = new PtVector(400, h, 0);
+    PtVector top;
+    if (num_springs == 0) { top = new PtVector(400, h, 0); }
+    else { top = springs.get(num_springs - 1).bottom; } // make spring top above spring's bottom
     PtVector bottom = new PtVector(400, h + sprRestLen, 0);
     
     Spring n = new Spring(sprRestLen, top, bottom, springMass, nodeRadius, k, kv, gravity, floorHeight);
@@ -44,14 +46,10 @@ class SpringSystem {
     // update each spring in between the nodes..
     for (int i = 0; i < num_springs; i++) {
       double vY_above = 0;
-      PtVector newTop = null;
-      if (i != 0) { 
-      vY_above = oldSprings.get(i-1).vel.y;
-      newTop = new PtVector(oldSprings.get(i-1).top);
-    }
+      if (i != 0) { vY_above = oldSprings.get(i-1).vel.y; }
       double yForce_below = 0;
       if (i != num_springs - 1) { yForce_below = oldSprings.get(i+1).yForce; }
-      springs.get(i).update(dt, vY_above, yForce_below, newTop);
+      springs.get(i).update(dt, vY_above, yForce_below);
     }
   }
   

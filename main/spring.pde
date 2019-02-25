@@ -31,9 +31,8 @@ class Spring {
     bottom = B; // bottom of spring, where a ball may be rendered 
   }
   
-  void update(double dt, double vY_above, double force_below, PtVector newTop) {
+  void update(double dt, double vY_above, double force_below) {
     // compute (damped) Hooke's law for this spring
-    if (newTop != null) { top = newTop; }
     double stringF_Y = -k*((bottom.y - top.y) - restLen);
     double dampF_Y = -kv*(vel.y - vY_above);
     yForce = stringF_Y + dampF_Y;
