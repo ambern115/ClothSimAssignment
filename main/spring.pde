@@ -8,6 +8,7 @@ class Spring {
   double kv;
   
   PtVector overallForce = new PtVector(0,0,0);
+  PtVector userForce = new PtVector(0,0,0);
   
   float mass;
   float radius;
@@ -39,6 +40,7 @@ class Spring {
     PtVector forceDirections = lengths.divideByConstant(lengths.getLen());
     PtVector dampingForce = vel.subtractVector(vel_above).getMultByCon(-kv);
     overallForce = forceDirections.getMultByCon(stringF).getAddVectors(dampingForce);
+    overallForce.addVec(userForce);
     
     //add integrated forces to acceleration, and trickle integration down
     PtVector acc = (overallForce.divideByConstant(mass).subtractVector(forceBelow.divideByConstant(mass))).divideByConstant(2.0);

@@ -25,6 +25,11 @@ class PtVector {
     z = other.z;
   }
   
+  //returns a string representation for the PtVector
+  String toString() {
+    return "(" + x + ", " + y + ", " + z + ")";
+  }
+  
   // magnitude
   double getLen() {
     return Math.sqrt(x*x + y*y + z*z);

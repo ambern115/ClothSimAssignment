@@ -34,11 +34,22 @@ class SpringSystem {
     PtVector top;
     if (num_springs == 0) { top = new PtVector(400, h, -20); }
     else { top = springs.get(num_springs - 1).bottom; } // make spring top above spring's bottom
-    PtVector bottom = new PtVector(400, h + sprRestLen, -20 + random(-1000,0));
+    PtVector bottom = new PtVector(400 + random(-100, 100), h + sprRestLen + random(-20, 20), -20 + random(-100,10));
     
     Spring n = new Spring(sprRestLen, top, bottom, springMass, nodeRadius, k, kv, gravity, floorHeight);
     springs.add(n);
     num_springs++;
+  }
+  
+  // adds a force to the end of the spring (the bottom node)
+  void AddForceToBottomSpring(PtVector force) {
+    //add a fraction of the force to all other springs so they move more naturally
+    for (int i = num_springs - 2; i >= 0; i--) {
+      PtVector result = new PtVector(force);
+      result.divByCon(2.0/max(i,1));
+      springs.get(i).userForce = result;
+    }
+    springs.get(num_springs - 1).userForce = new PtVector(force);
   }
    
   //performs physics calculations on each spring for timestep dt.
@@ -58,9 +69,10 @@ class SpringSystem {
   
   //runs the spring system for one frame.
   //performs all spring physics updates, then renders each spring.
-  void run(int timesteps, double dt) {
+  void run(int timesteps, double dt, PtVector bottomForce) {
     for (int i = 0; i < timesteps; i++) {
       oldSprings = new ArrayList(springs);
+      AddForceToBottomSpring(bottomForce);
       update(dt);
     }
     for (int i = 0; i < num_springs; i++) {

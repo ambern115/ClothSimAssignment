@@ -33,8 +33,12 @@ float radius = 20;
 double k = 100000000L; //TRY-IT: How does changing k affect resting length?
 double kv = 10000;
 
-//NodeOnString nos1 = new NodeOnString(300,0,20,1,radius,floor_height);
+PtVector userForce = new PtVector(0,0,0);
+double userPullValue = 80000000L;
+
 SpringSystem ss = new SpringSystem(k, kv, floor_height);
+
+boolean sim_started = false; //true if the spring rendering has begun
 
 // initialize window
 void setup() {
@@ -48,6 +52,9 @@ void setup() {
 }
 
 void keyPressed() {
+  if (keyCode == ENTER) {
+    sim_started = !sim_started;
+  }
   if (keyCode == UP) {
     up_pressed = true;
   } else if (keyCode == DOWN) {
@@ -156,8 +163,7 @@ void draw() {
     // draw text here so it's not affected by cam movement
     textSize(14);
     fill(0,0,0,255);
-    text(("                 frame rate: " + frameRate 
-          + "\n                 # particles: " + '0'), 4, -18);
+    text(("                 frame rate: " + frameRate), 4, -18);
     translate(moveX,moveY,zoom);
     rotateY(rotX);
     rotateX(rotY);
@@ -174,12 +180,29 @@ void draw() {
     // draw text here so it's not affected by cam movement
     textSize(14);
     fill(0,0,0,255);
-    text(("                 frame rate: " + frameRate 
-          + "\n                 # particles: " + '0'), 4, -18);    
+    text(("                 frame rate: " + frameRate), 4, -18);    
     translate(moveX,moveY,zoom);
     rotateY(rotX);
     rotateX(rotY);
     endCamera();  
+  }
+  
+  //check for forces being applied by user
+  if (lf_pressed) {
+    userForce.addVec(new PtVector(-userPullValue,0,0));
+  }
+  if (rt_pressed) {
+    userForce.addVec(new PtVector(userPullValue,0,0));
+  }
+  if (dn_pressed) {
+    userForce.addVec(new PtVector(0,0,userPullValue));
+  }
+  if (up_pressed) {
+    userForce.addVec(new PtVector(0,0,-userPullValue));
+  }
+  // reset user force if no input (menaing no force applied)
+  if (!lf_pressed && !dn_pressed && !rt_pressed && !up_pressed) {
+    userForce = new PtVector(0,0,0);
   }
   
   // draw objects in the system
@@ -189,7 +212,9 @@ void draw() {
     timesteps += 1;
   }
   double dt = goalDT / (int) timesteps;
-  ss.run((int) timesteps, dt);
+  
+  // only run if the user has hit enter
+  if (sim_started) { ss.run((int) timesteps, dt, userForce); }
   
   // ground....
   //rect(0,floor_height-radius/2,1000,1);
