@@ -6,7 +6,7 @@
 //import peasy.*;
 //PeasyCam camera;
 
-double goalDT = .004;
+double goalDT = 0.00004;
 double startTime;
 double elapsedTime;
 
@@ -27,20 +27,22 @@ float zoom;
 float moveX, moveY;
 
 // objects
-float floor_height = 2000;
+float floor_height = 600;
 float radius = 20;
 
+double k = 100000000L; //TRY-IT: How does changing k affect resting length?
+double kv = 10000;
 
 //NodeOnString nos1 = new NodeOnString(300,0,20,1,radius,floor_height);
-SpringSystem ss = new SpringSystem(10, 10, floor_height);
+SpringSystem ss = new SpringSystem(k, kv, floor_height);
 
 // initialize window
 void setup() {
   size(800, 600, P3D);
   surface.setTitle("Homework2_5611_Thread_Sim");
-  ss.add_node();
-  //ss.add_node();
-  //ss.add_node();
+  ss.add_spring();
+  ss.add_spring();
+  ss.add_spring();
   startTime = millis();
   //camera = new PeasyCam(this, 400, 300, 0, 300);
 }
@@ -136,9 +138,9 @@ void draw() {
   elapsedTime = (millis() - startTime) / 1000.0;
   startTime = millis();
   background(220,220,240);
+  lights();  
   //setupLights();
   translate_cam();
-  lights();  
   noStroke();
   
   if (mouse_lf_pressed) {
@@ -190,6 +192,13 @@ void draw() {
   ss.run((int) timesteps, dt);
   
   // ground....
-  rect(0,floor_height-radius/2,1000,1);
+  //rect(0,floor_height-radius/2,1000,1);
+  beginShape();
+  fill(255,0,0);
+  vertex(0, height, 20);
+  vertex(width, height, 20);
+  vertex(width, height, -1000);
+  vertex(0, height, -1000);
+  endShape();
 }
   

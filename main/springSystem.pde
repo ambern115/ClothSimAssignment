@@ -1,67 +1,69 @@
 class SpringSystem {
   ArrayList<Spring> springs = new ArrayList();
+  ArrayList<Spring> oldSprings;
   int num_springs = 0;
   
   // constants
-  float gravity = 9885;
-  float k = .5; // stiffness 
-  float kv = .05; // damping velocity???
-  float add_dist_x = 40;
-  float floor_height = 1000;
+  double gravity = 500000000L;
+  double k =       1000000000000L;
+  double kv =      -1000;
+  float sprRestLen = 50;
+  float floorHeight = 600;
+  float springMass = 1;
+  float nodeRadius = 15;
   
-  SpringSystem(float _k, float _kv) {
+  SpringSystem(double _k, double _kv) {
     k = _k;
     kv = _kv;
   }
   
   // spring system with floor height given
-  SpringSystem(float _k, float _kv, float floor_h) {
+  SpringSystem(double _k, double _kv, float floor_h) {
     k = _k;
     kv = _kv;
     floor_height = floor_h;
   }
   
-  // by default, adds new node to the end of the string
-  // adds node using "default" parameters 
-  void add_node() {
-    println("in add node"+num_springs);
-    float h = 200+num_springs*50;
-    PtVector top = new PtVector(0,h-50,0);
-    PtVector bottom = new PtVector(0,h,0);
+  // by default, adds new spring to the end of the string
+  // adds spring using "default" parameters 
+  void add_spring() {
+    println("adding node number "+num_springs);
+    float h;
+    if (num_springs == 0) { h = floor_height - height + 100; } //place near top of screen
+    else { h = (float) (springs.get(num_springs - 1).bottom.y); } // place on bottom of last spring
+    PtVector top = new PtVector(400, h, 0);
+    PtVector bottom = new PtVector(400, h + sprRestLen, 0);
     
-    Spring n = new Spring(40, top, bottom, 30, 10, floor_height);
+    Spring n = new Spring(sprRestLen, top, bottom, springMass, nodeRadius, k, kv, gravity, floorHeight);
     springs.add(n);
     num_springs++;
   }
    
-   
-//void update(float prev_node_velY,float num_nodes,float total_forces_below)
+  //performs physics calculations on each spring for timestep dt.
   void update(double dt) {
     // update each spring in between the nodes..
-
     for (int i = 0; i < num_springs; i++) {
-      if (i == 0) {
-        if (num_springs > 1) {
-          springs.get(i).update(dt, 0, springs.get(i+1).yForce/springs.get(i+1).mass);
-        } else {
-          springs.get(i).update(dt, 0, 0);
-        }
-      } else if (i == num_springs-1) { // lowest spring
-        springs.get(i).update(dt, springs.get(i-1).vel.y, 0);
-      } else if (i > 0) {
-        springs.get(i).update(dt, 
-                              springs.get(i-1).vel.y, 
-                              springs.get(i+1).yForce/springs.get(i+1).mass); 
-      }                    
+      double vY_above = 0;
+      PtVector newTop = null;
+      if (i != 0) { 
+      vY_above = oldSprings.get(i-1).vel.y;
+      newTop = new PtVector(oldSprings.get(i-1).top);
+    }
+      double yForce_below = 0;
+      if (i != num_springs - 1) { yForce_below = oldSprings.get(i+1).yForce; }
+      springs.get(i).update(dt, vY_above, yForce_below, newTop);
     }
   }
   
+  //runs the spring system for one frame.
+  //performs all spring physics updates, then renders each spring.
   void run(int timesteps, double dt) {
     for (int i = 0; i < timesteps; i++) {
+      oldSprings = new ArrayList(springs);
       update(dt);
     }
     for (int i = 0; i < num_springs; i++) {
-      springs.get(i).run();
+      springs.get(i).render();
     }
   }
 }

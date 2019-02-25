@@ -1,18 +1,18 @@
 class Node {
   
-  float gravity = 800;
-  float velY;
-  float prev_velY = 0;
+  double gravity = 500000000L;
+  double velY;
+  double prev_velY = 0;
 
   float restLen;
   float stringTop;
   float nodeY; // node's Y position
-  float k = 1000; // stiffness
-  float kv = 1; // damping velocity???
+  double k = 100000000L; //TRY-IT: How does changing k affect resting length?
+  double kv = 10000;
   float mass;
   float radius;
   float floor;
-  float total_forceY;
+  double total_forceY;
   
   
   Node(float restL, float stringT, float nY, float m, float r, float flr) {
@@ -28,21 +28,21 @@ class Node {
     stringTop = y;
   }
   
-  void update(float prev_node_velY,float num_nodes,float total_forces_below, double dt) {
+  void update(double prev_node_velY, int num_nodes, double total_forces_below, double dt) {
     prev_velY = velY;
     
     // string force
     // question!!! does stringTop just mean the y velocity of the node immediately 
     // above the current one, or the cumulative velocity of all nodes above???
-    float stringF = -1*k*((nodeY - stringTop) - restLen);
-    float dampF = -1*kv*(velY - prev_node_velY);
+    double stringF = -1*k*((nodeY - stringTop) - restLen);
+    double dampF = -1*kv*(velY - prev_node_velY);
     
     // sum of forces up and down
-    float forceY = dampF + stringF + gravity*mass;
+    double forceY = dampF + stringF + gravity*mass;
     total_forceY = forceY;
     
     // acceleration on y axis
-    float accY = gravity + (1/num_nodes)*forceY/mass - (1/num_nodes)*total_forces_below; 
+    double accY = gravity + (1.0/num_nodes)*forceY/mass - (1.0/num_nodes)*total_forces_below; 
     velY += accY*dt;
     nodeY += velY*dt;
     
@@ -50,7 +50,6 @@ class Node {
       velY *= -.9;
       nodeY = floor - radius;
     }
-    
   }
   
   void run() {
