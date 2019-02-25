@@ -200,5 +200,23 @@ void draw() {
   vertex(width, height, -1000);
   vertex(0, height, -1000);
   endShape();
+  
+  //left wall
+  beginShape();
+  fill(153,102,51);
+  vertex(0, height, 20);
+  vertex(0, height, -1000);
+  vertex(0, 0, -1000);
+  vertex(0, 0, 20);
+  endShape();
+  
+  //right wall
+  /*beginShape();
+  fill(153,102,51);
+  vertex(width, height, 20);
+  vertex(width, height, -1000);
+  vertex(width, 0, -1000);
+  vertex(width, 0, 20);
+  endShape();*/
 }
   

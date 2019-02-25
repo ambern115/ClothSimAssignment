@@ -36,7 +36,7 @@ class PtVector {
     z += v.z;
   }
   
-  PtVector getAdd(PtVector v) {
+  PtVector getAddVectors(PtVector v) {
     double newX = x+v.x;
     double newY = y+v.y;
     double newZ = z+v.z;
@@ -80,7 +80,13 @@ class PtVector {
     z = z/n;
   }
   
-  
+  // divide vector by a constant
+  PtVector divideByConstant(double n) {
+    double newX = x/n;
+    double newY = y/n;
+    double newZ = z/n;
+    return new PtVector(newX, newY, newZ);
+  }
   
   // scalar projection of this vector onto v...
   // informally measures vector "similarity"
@@ -121,5 +127,21 @@ class PtVector {
     double newZ = x*v.y - y*v.x;
     PtVector newV = new PtVector(newX,newY,newZ);
     return newV;
+  }
+  
+  
+  //returns a brand new vector with the other subtracted from it
+  PtVector subtractVector(PtVector other) {
+    double newX = this.x - other.x;
+    double newY = this.y - other.y;
+    double newZ = this.z - other.z;
+    return new PtVector(newX, newY, newZ);
+  }
+  
+  PtVector subtractConstant(double constant) {
+    double newX = this.x - constant;
+    double newY = this.y - constant;
+    double newZ = this.z - constant;
+    return new PtVector(newX, newY, newZ);
   }
 }
