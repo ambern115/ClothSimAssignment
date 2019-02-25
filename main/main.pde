@@ -29,16 +29,18 @@ float moveX, moveY;
 // objects
 float floor_height = 2000;
 float radius = 20;
+
+
 //NodeOnString nos1 = new NodeOnString(300,0,20,1,radius,floor_height);
-SpringSystem ss = new SpringSystem(0.9, 0.1, floor_height);
+SpringSystem ss = new SpringSystem(10, 10, floor_height);
 
 // initialize window
 void setup() {
   size(800, 600, P3D);
   surface.setTitle("Homework2_5611_Thread_Sim");
   ss.add_node();
-  ss.add_node();
-  ss.add_node();
+  //ss.add_node();
+  //ss.add_node();
   startTime = millis();
   //camera = new PeasyCam(this, 400, 300, 0, 300);
 }
