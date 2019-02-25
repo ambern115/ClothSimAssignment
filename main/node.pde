@@ -1,15 +1,14 @@
 class Node {
   
-  float gravity = 0.98065;
+  float gravity = 800;
   float velY;
   float prev_velY = 0;
 
   float restLen;
   float stringTop;
   float nodeY; // node's Y position
-  float k = .01; // stiffness
-  float kv = .05; // damping velocity???
-  float dt = .25;
+  float k = 1000; // stiffness
+  float kv = 1; // damping velocity???
   float mass;
   float radius;
   float floor;
@@ -29,12 +28,12 @@ class Node {
     stringTop = y;
   }
   
-  void update(float prev_node_velY,float num_nodes,float total_forces_below) {
+  void update(float prev_node_velY,float num_nodes,float total_forces_below, double dt) {
     prev_velY = velY;
     
     // string force
     // question!!! does stringTop just mean the y velocity of the node immediately 
-    // above the current one, or the cummulative velocity of all nodes above???
+    // above the current one, or the cumulative velocity of all nodes above???
     float stringF = -1*k*((nodeY - stringTop) - restLen);
     float dampF = -1*kv*(velY - prev_node_velY);
     

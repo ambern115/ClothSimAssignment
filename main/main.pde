@@ -3,6 +3,13 @@
 
 // initialize global variables
 
+//import peasy.*;
+//PeasyCam camera;
+
+double goalDT = .004;
+double startTime;
+double elapsedTime;
+
 // camera-control variables
 boolean up_pressed = false;
 boolean dn_pressed = false;
@@ -32,8 +39,8 @@ void setup() {
   ss.add_node();
   ss.add_node();
   ss.add_node();
-
-  
+  startTime = millis();
+  //camera = new PeasyCam(this, 400, 300, 0, 300);
 }
 
 void keyPressed() {
@@ -124,12 +131,13 @@ void setupLights() {
 
 // function called every frame for rendering
 void draw() {
+  elapsedTime = (millis() - startTime) / 1000.0;
+  startTime = millis();
   background(220,220,240);
-  setupLights();
+  //setupLights();
   translate_cam();
-  
+  lights();  
   noStroke();
-  lights();
   
   if (mouse_lf_pressed) {
     beginCamera();
@@ -171,7 +179,13 @@ void draw() {
   }
   
   // draw objects in the system
-  ss.run();
+  double timesteps = elapsedTime / goalDT;
+  double extraChance = timesteps - ((int) timesteps);
+  if (random(0,1) <= extraChance) {
+    timesteps += 1;
+  }
+  double dt = goalDT / (int) timesteps;
+  ss.run((int) timesteps, dt);
   
   // ground....
   rect(0,floor_height-radius/2,1000,1);
