@@ -1,0 +1,29 @@
+Spring layout diagram, where:
+_ represents a horizontal spring
+| represents a vertical spring
+
+ _ _ _ _ _
+|_|_|_|_|_|
+|_|_|_|_|_|
+|_|_|_|_|_|
+|_|_|_|_|_|
+|_|_|_|_|_|
+
+One ArrayList doesn't make a lot of sense
+Maybe a double ArrayList?
+Maybe two double ArrayLists, one for vertical springs, one for horizontal springs, would be best. I think that's what I want to do
+
+Just the vertical springs:          
+| | | | | |
+| | | | | |
+| | | | | |
+| | | | | |
+| | | | | |
+
+Just the horizontal springs:
+ _ _ _ _ _
+ _ _ _ _ _ 
+ _ _ _ _ _ 
+ _ _ _ _ _ 
+ _ _ _ _ _ 
+ _ _ _ _ _ 

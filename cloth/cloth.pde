@@ -31,16 +31,15 @@ float floor_height = 600;
 float radius = 20;
 
 double k = 150000000L; //stiffness of the spring
-double kv = 10000; //damping factor of spring motion
+double kv = 30000; //damping factor of spring motion
 double gravity = 500000000L; //acceleration due to gravity
 
 PtVector userForce = new PtVector(0,0,0); //vector storing user pulls on the string
 double userPullValue = 80000000L; //strength of force added by user pull on spring
 
-
+int springSystemLength = 5; //the number of squares that forms the spring system
 //arguments: SprngSystem(double _k, double _kv, double grav, PtVector topPos, float floor_h)
-SpringSystem ss1 = new SpringSystem(k, kv, gravity, new PtVector(400, 100, -20), floor_height);
-SpringSystem ss2 = new SpringSystem(k, kv, gravity, new PtVector(450, 100, -20), floor_height);
+SpringSystem ss;
 
 boolean sim_started = false; //true if the spring rendering has begun
 
@@ -48,11 +47,8 @@ boolean sim_started = false; //true if the spring rendering has begun
 void setup() {
   size(800, 600, P3D);
   surface.setTitle("Homework2_5611_Thread_Sim");
-  for (int i = 0; i < 7; i++) { 
-  ss1.add_spring(); 
-  ss2.add_spring();
-}
-  
+  ss = new SpringSystem(k, kv, gravity, springSystemLength, new PtVector(width/3, 100, -20), floor_height);
+  print(ss.toString());
   startTime = millis();
   //camera = new PeasyCam(this, 400, 300, 0, 300);
 }
@@ -220,10 +216,7 @@ void draw() {
   double dt = goalDT / (int) timesteps;
   
   // only run if the user has hit enter
-  if (sim_started) {
-  ss1.run((int) timesteps, dt, userForce);
-  ss2.run((int) timesteps, dt, userForce);
-}
+  if (sim_started) { ss.run((int) timesteps, dt, userForce); }
   
   // ground....
   //rect(0,floor_height-radius/2,1000,1);

@@ -1,22 +1,32 @@
 class SpringSystem {
-  ArrayList<Spring> springs = new ArrayList();
-  ArrayList<Spring> oldSprings;
-  int num_springs = 0;
+  // springs are stored within two double-ArrayLists, one for rows of horizontal springs,
+  // and one for rows of vertical springs
+  ArrayList<ArrayList<Spring>> horizSprings = new ArrayList();
+  ArrayList<ArrayList<Spring>> vertSprings = new ArrayList();
+  
+  ArrayList<ArrayList<Spring>> oldHorizSprings;
+  ArrayList<ArrayList<Spring>> oldVertSprings;
+  
+  // the number of squares, horizontally and vertically, in the SpringSystem
+  // squares are formed by four springs coming together to form a square shape
+  int systemLength = 5;
   
   // constants
-  double gravity = 500000000L;
-  double k =       5000000000000L;
-  double kv =      -1000;
-  float sprRestLen = 1;
+  double gravity = 10000000L;
+  double k;
+  double kv;
+  float sprRestLen = 40;
   float floorHeight = 600;
   //the position of the anchored spring at the top of the system
-  PtVector springTopPos = new PtVector(width / 2, floor_height - height + 100, -20); 
+  PtVector springTopLeftPos = new PtVector(width / 5, floor_height - height + 100, -20); 
   float springMass = 1;
-  float nodeRadius = 2;
+  float nodeRadius = 4;
   
   SpringSystem(double _k, double _kv) {
     k = _k;
     kv = _kv;
+    
+    addSprings();
   }
   
   // spring system with floor height given
@@ -24,60 +34,133 @@ class SpringSystem {
     k = _k;
     kv = _kv;
     floor_height = floor_h;
+    
+    addSprings();
   }
   
   // spring system with many tuning parameters
-  SpringSystem(double _k, double _kv, double grav, PtVector topPos, float floor_h) {
+  SpringSystem(double _k, double _kv, double grav, int len, PtVector topLeftPos, float floor_h) {
     k = _k;
     kv = _kv;
     floor_height = floor_h;
     gravity = grav;
-    springTopPos = topPos;
-  }
-  
-  // by default, adds new spring to the end of the string
-  // adds spring using "default" parameters 
-  void add_spring() {
-    println("adding node number "+num_springs);
-    float h;
-    if (num_springs == 0) { h = floor_height - height + 100; } //place near top of screen
-    else { h = (float) (springs.get(num_springs - 1).bottom.y); } // place on bottom of last spring
-    PtVector top;
-    if (num_springs == 0) { 
-    top = new PtVector(springTopPos);
-    println("spring top of this system is: " + top.toString());
-    }
-    else { top = springs.get(num_springs - 1).bottom; } // make spring top the above spring's bottom
-    PtVector bottom = new PtVector(top.x + random(-100, 100), top.y + sprRestLen + random(-20, 20), top.z + random(-100,10));
+    systemLength = len;
+    springTopLeftPos = topLeftPos;
     
-    Spring n = new Spring(sprRestLen, top, bottom, springMass, nodeRadius, k, kv, gravity, floorHeight);
-    springs.add(n);
-    num_springs++;
+    addSprings();
   }
   
-  // adds a force to the end of the spring (the bottom node)
-  void AddForceToBottomSpring(PtVector force) {
-    //add a fraction of the force to all other springs so they move more naturally
-    for (int i = num_springs - 2; i >= 0; i--) {
-      PtVector result = new PtVector(force);
-      result.divByCon(2.0/max(i,1));
-      springs.get(i).userForce = result;
+  //uses systemLength to add all necessary springs to this system
+  void addSprings() {
+    //first, create all vertical springs in the system
+    for (int row = 0; row < systemLength; row++) {
+      //create the ArrayList for this column
+      ArrayList<Spring> vertRow = new ArrayList<Spring>();
+      vertSprings.add(vertRow);
+      //vertical springs must have one extra column to make a systemLengthXsystemLength series of squares
+      for (int col = 0; col < systemLength + 1; col++) {
+        PtVector vertTop;
+        if (col == 0 && row == 0) { //top left corner
+          vertTop = new PtVector(springTopLeftPos);
+        } else if (row == 0) { //top row, but not top left
+          vertTop = new PtVector(vertRow.get(col-1).top.x + sprRestLen, springTopLeftPos.y, springTopLeftPos.z);
+        } else { //anywhere else in the system
+          vertTop = vertSprings.get(row-1).get(col).bottom;
+        }
+        PtVector vertBottom = new PtVector(vertTop.x, vertTop.y + sprRestLen, vertTop.z);
+        Spring vertSpring = new Spring(sprRestLen, vertTop, vertBottom, springMass, nodeRadius, k, kv, gravity, floorHeight);
+        vertRow.add(vertSpring);
+      }
     }
-    springs.get(num_springs - 1).userForce = new PtVector(force);
+    
+    //next, create all horizontal springs
+    //horizontal springs must have one extra row to make a systemLengthXsystemLength series of squares
+    for (int row = 0; row < systemLength + 1; row++) {
+      //create the ArrayList for this column
+      ArrayList<Spring> horizRow = new ArrayList<Spring>();
+      horizSprings.add(horizRow);
+      for (int col = 0; col < systemLength; col++) {
+        //tie this horizontal spring to the same anchors as its nearby verticals
+        PtVector horizLeft;
+        if (row < systemLength) { horizLeft = vertSprings.get(row).get(col).top; }
+        else { horizLeft = vertSprings.get(row-1).get(col).bottom; }
+        
+        PtVector horizRight;
+        if (row < systemLength) { horizRight = vertSprings.get(row).get(col+1).top; }
+        else { horizRight = vertSprings.get(row-1).get(col+1).bottom; }
+        
+        Spring horizSpring = new Spring(sprRestLen, horizLeft, horizRight, springMass, nodeRadius, k, kv, gravity, floorHeight);
+        horizRow.add(horizSpring);
+      }
+    }
+  }
+  
+  // returns a string that describes all nodes in the spring system
+  String toString() {
+    String result;
+    result = "-----\nSpring system of size " + Integer.toString(systemLength) + "\n";
+    for (int row = 0; row < systemLength+1; row++) {
+      for (int col = 0; col < systemLength+1; col++) {
+        if (row < systemLength) {
+          result += "Vertical spring at row " + Integer.toString(row) + " and column " + Integer.toString(col);
+          result += " has top position of " + vertSprings.get(row).get(col).top.toString() + "\n";
+        }
+        
+        if (col < systemLength) {
+          result += "Horizontal spring at row " + Integer.toString(row) + " and column " + Integer.toString(col);
+          result += " has left position of " + horizSprings.get(row).get(col).top.toString() + "\n";
+        }
+      }
+      result += "\n";
+    }
+    result += "-----\n\n";
+    return result;
+  }
+  
+  // adds a force to the end of the spring (the bottom nodes)
+  void AddForceToBottomSprings(PtVector force) {
+    //also adds a fraction of the force to all other springs so they move more naturally
+    for (int row = systemLength - 1; row >= 0; row--) {
+      for (int col = 0; col < systemLength + 1; col++) {
+        PtVector result = new PtVector(force);
+        result.multByCon( ((float) row) / ((float) systemLength));
+        if (row < systemLength - 1) { vertSprings.get(row).get(col).userForce = result; }
+        if (col < systemLength) { horizSprings.get(row).get(col).userForce = result; }
+      }
+    }
+    // finally, adds a force to the end of the spring (the bottom nodes)
+    for (int col = 0; col < systemLength + 1; col++) {
+        vertSprings.get(systemLength - 1).get(col).userForce = new PtVector(force);
+        if (col < systemLength) { horizSprings.get(systemLength).get(col).userForce = new PtVector(force); }
+    }
   }
    
   //performs physics calculations on each spring for timestep dt.
   void update(double dt) {
-    // update each spring in between the nodes..
-    for (int i = 0; i < num_springs; i++) {
-      PtVector velAbove = new PtVector(0,0,0);
-      //println("1");
-      if (i != 0) { velAbove = new PtVector(oldSprings.get(i-1).vel); }
-      //println("2");
-      PtVector yForce_below = new PtVector(0,0,0);
-      if (i != num_springs - 1) { yForce_below = new PtVector(oldSprings.get(i+1).overallForce); }
-      //println("3");
-      springs.get(i).update(dt, velAbove, yForce_below);
+    for (int row = 0; row < systemLength+1; row++) {
+      for (int col = 0; col < systemLength+1; col++) {
+        if (row < systemLength) { //update this vertical spring
+          PtVector velAbove, forceBelow;
+          if (row == 0) { velAbove = new PtVector(0,0,0); }
+          else { velAbove = new PtVector(oldVertSprings.get(row-1).get(col).vel); }
+          if (row == systemLength - 1) { forceBelow = new PtVector(0,0,0); }
+          else { forceBelow = new PtVector(oldVertSprings.get(row+1).get(col).overallForce); }
+          vertSprings.get(row).get(col).update(dt, velAbove, forceBelow);
+        }
+        
+        if (col < systemLength) { //update this horizontal spring
+          if (row == 0) { //top row of springs shouldn't move
+            continue;
+          } else { //all other springs can move
+            PtVector velLeft, forceRight;
+            if (col == 0) { velLeft = new PtVector(0,0,0); }
+            else { velLeft = new PtVector(oldHorizSprings.get(row).get(col-1).vel); }
+            if (col == systemLength - 1) { forceRight = new PtVector(0,0,0); }
+            else { forceRight = new PtVector(oldHorizSprings.get(row).get(col+1).overallForce); }
+            horizSprings.get(row).get(col).update(dt, velLeft, forceRight);
+          }
+        }
+      }
     }
   }
   
@@ -85,12 +168,16 @@ class SpringSystem {
   //performs all spring physics updates, then renders each spring.
   void run(int timesteps, double dt, PtVector bottomForce) {
     for (int i = 0; i < timesteps; i++) {
-      oldSprings = new ArrayList(springs);
-      AddForceToBottomSpring(bottomForce);
+      oldVertSprings = new ArrayList(vertSprings);
+      oldHorizSprings = new ArrayList(horizSprings);
+      AddForceToBottomSprings(bottomForce);
       update(dt);
     }
-    for (int i = 0; i < num_springs; i++) {
-      springs.get(i).render();
+    for (int row = 0; row < systemLength+1; row++) {
+      for (int col = 0; col < systemLength+1; col++) {
+        if (row < systemLength) { vertSprings.get(row).get(col).render(); }
+        if (col < systemLength) { horizSprings.get(row).get(col).render(); }
+      }
     }
   }
 }
