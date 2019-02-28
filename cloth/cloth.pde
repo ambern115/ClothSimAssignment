@@ -6,7 +6,6 @@
 //import peasy.*;
 //PeasyCam camera;
 
-double goalDT = 0.00004;
 double startTime;
 double elapsedTime;
 
@@ -26,19 +25,28 @@ float rotY, rotX;
 float zoom;
 float moveX, moveY;
 
-// objects
-float floor_height = 600;
-float radius = 20;
-
-double k = 150000000L; //stiffness of the spring
-double kv = 30000; //damping factor of spring motion
-double gravity = 500000000L; //acceleration due to gravity
+// class accessible from anywhere else that holds our tuning 
+// parameters for the simulation
+static class ClothParams {
+  static double goalDT = 0.001; //the fraction of a second we simulate with each timestep
+  static boolean useDiags = false; //Do we want to use diagonal springs for extra stability?
+  
+  static float floor_height = 600; //location of the floor in Y coordinates
+  static float radius = 2; //radius of particle sphere
+  static float mass = 1; //mass of particle
+  
+  static float restLen = 40; //the resting length of each spring
+  static double k = 600000L; //stiffness of the spring
+  static double kd = 1000; //damping factor of spring motion
+  static double gravity = 600000L; //acceleration due to gravity
+  
+  static double userPullValue = 80000L; //strength of force added by user pull on spring
+  
+  static int springSystemLength = 10; //the number of squares that forms the spring system
+}
 
 PtVector userForce = new PtVector(0,0,0); //vector storing user pulls on the string
-double userPullValue = 80000000L; //strength of force added by user pull on spring
 
-int springSystemLength = 5; //the number of squares that forms the spring system
-//arguments: SprngSystem(double _k, double _kv, double grav, PtVector topPos, float floor_h)
 SpringSystem ss;
 
 boolean sim_started = false; //true if the spring rendering has begun
@@ -47,7 +55,8 @@ boolean sim_started = false; //true if the spring rendering has begun
 void setup() {
   size(800, 600, P3D);
   surface.setTitle("Homework2_5611_Thread_Sim");
-  ss = new SpringSystem(k, kv, gravity, springSystemLength, new PtVector(width/3, 100, -20), floor_height);
+  //arguments: SprngSystem(double _k, double _kv, double grav, PtVector topPos, float floor_h)
+  ss = new SpringSystem(ClothParams.springSystemLength, new PtVector(width/5, 100, -20));
   print(ss.toString());
   startTime = millis();
   //camera = new PeasyCam(this, 400, 300, 0, 300);
@@ -188,7 +197,7 @@ void draw() {
     rotateX(rotY);
     endCamera();  
   }
-  
+  /*
   //check for forces being applied by user
   if (lf_pressed) {
     userForce.addVec(new PtVector(-userPullValue,0,0));
@@ -205,15 +214,15 @@ void draw() {
   // reset user force if no input (menaing no force applied)
   if (!lf_pressed && !dn_pressed && !rt_pressed && !up_pressed) {
     userForce = new PtVector(0,0,0);
-  }
+  }*/
   
   // draw objects in the system
-  double timesteps = elapsedTime / goalDT;
+  double timesteps = elapsedTime / ClothParams.goalDT;
   double extraChance = timesteps - ((int) timesteps);
   if (random(0,1) <= extraChance) {
     timesteps += 1;
   }
-  double dt = goalDT / (int) timesteps;
+  double dt = ClothParams.goalDT / (int) timesteps;
   
   // only run if the user has hit enter
   if (sim_started) { ss.run((int) timesteps, dt, userForce); }

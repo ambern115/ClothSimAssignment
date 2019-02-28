@@ -134,13 +134,19 @@ class PtVector {
     return newV;
   }
   
-  
   //returns a brand new vector with the other subtracted from it
-  PtVector subtractVector(PtVector other) {
+  PtVector getSubtractedVector(PtVector other) {
     double newX = this.x - other.x;
     double newY = this.y - other.y;
     double newZ = this.z - other.z;
     return new PtVector(newX, newY, newZ);
+  }  
+  
+  //subtracts other from this vector
+  void subtractVector(PtVector other) {
+    this.x -= other.x;
+    this.y -= other.y;
+    this.z -= other.z;
   }
   
   PtVector subtractConstant(double constant) {

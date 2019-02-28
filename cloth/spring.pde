@@ -34,17 +34,17 @@ class Spring {
   }
   
   void update(double dt, PtVector vel_above, PtVector forceBelow) {
-    PtVector lengths = bottom.subtractVector(top);
+    PtVector lengths = bottom.getSubtractedVector(top);
     
     // compute (damped) Hooke's law for this spring, and all other forces
     double stringF = -k * (lengths.getLen() - restLen);
     PtVector forceDirections = lengths.divideByConstant(lengths.getLen());
-    PtVector dampingForce = vel.subtractVector(vel_above).getMultByCon(-kv);
+    PtVector dampingForce = vel.getSubtractedVector(vel_above).getMultByCon(-kv);
     overallForce = forceDirections.getMultByCon(stringF).getAddVectors(dampingForce);
     overallForce.addVec(userForce);
     
     //add integrated forces to acceleration, and trickle integration down
-    PtVector acc = (overallForce.divideByConstant(mass).subtractVector(forceBelow.divideByConstant(mass))).divideByConstant(2.0);
+    PtVector acc = (overallForce.divideByConstant(mass).getSubtractedVector(forceBelow.divideByConstant(mass))).divideByConstant(2.0);
     acc.addVec(new PtVector(0,gravity,0));
     vel.addVec(acc.getMultByCon(dt));
     bottom.addVec(vel.getMultByCon(dt));
@@ -59,9 +59,9 @@ class Spring {
     bottom.y += (vel.y*dt);*/
     
     // collision detection and response...
-    if (bottom.y+radius > floor_height) {
+    if (bottom.y+radius > floor) {
       vel.y *= -collisionDamp;
-      bottom.y = floor_height - radius;
+      bottom.y = floor - radius;
     }
   }
   
