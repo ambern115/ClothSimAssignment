@@ -42,7 +42,7 @@ static class ClothParams {
   
   static double userPullValue = 8000L; //strength of force added by user pull on spring
   
-  static int springSystemLength = 30; //the number of nodes on each side of the the spring system
+  static int springSystemLength = 20; //the number of nodes on each side of the the spring system
 }
 
 PtVector userForce = new PtVector(0,0,0); //vector storing user pulls on the string
@@ -56,8 +56,8 @@ void setup() {
   size(800, 600, P3D);
   surface.setTitle("Homework2_5611_Thread_Sim");
   //arguments: SprngSystem(double _k, double _kv, double grav, PtVector topPos, float floor_h)
-  ss = new SpringSystem(ClothParams.springSystemLength, new PtVector(-100, -300, -20));
-  print(ss.toString());
+  ss = new SpringSystem(ClothParams.springSystemLength, new PtVector(width/3, 100, -20));
+  //print(ss.toString());
   startTime = millis();
   //camera = new PeasyCam(this, 400, 300, 0, 300);
 }

@@ -124,5 +124,6 @@ class SpringSystem {
     }
     renderNodes();
     //println(this.toString());
+    boolean garbage = true;
   }
 }
