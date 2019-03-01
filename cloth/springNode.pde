@@ -16,14 +16,19 @@ class SpringNode {
   PtVector vel; // velocity
   PtVector pos; //position of the node
   
+  int row; //the row of this particle in the node list
+  int col; //the column of this particle in the node list
+  
   PtVector accForces = new PtVector(0,0,0); //accumulated forces to be integrated at the end of timestep
   
   SpringNode[][] neighbors; //a 3x3 array of all this node's immediate neighbors, in [row][column] format
+  //true means force has already been calculated, false means it hasn't been done yet
+  boolean[][] neighborForceDone; //holds the status of the spring force for each neighbor. 
   int neighborsLen = 3;
   // neighbors[1][1] should be this node
   
   //Standard SpringNode constructor initializes necessary info
-  SpringNode(PtVector p) {
+  SpringNode(PtVector p, int r, int c) {
     mass = ClothParams.mass;
     radius = ClothParams.radius;
     
@@ -36,6 +41,9 @@ class SpringNode {
     
     vel = new PtVector(0,0,0);
     pos = p;
+    
+    row = r;
+    col = c;
   }
   
   // properly sets this node's neighbors so that they can be referenced later.
@@ -60,25 +68,17 @@ class SpringNode {
   // sets the physics for this node for the next timestep
   //uses spring forces between it and all neighbor nodes to calculate this
   void update() {
+    accForces.addVec(userForce);
     for (int nRow = 0; nRow < neighborsLen; nRow++) {
       for (int nCol = 0; nCol < neighborsLen; nCol++) {
         // first, ensure this is a valid neighbor to calculate forces for
         if (neighbors[nRow][nCol] == null || nRow == nCol) { continue; }
         else {
           SpringNode neighbor = neighbors[nRow][nCol];
-          /*
-          r = r2 - r1
-          l = |r|
-          e = r / |r|
-          F1 = [ -ks*(l0 - l) - kd*dot(v1 - v2, e) ] e
-          */
           // calculate unit length vector between two nodes
-          //println("neighbor pos is: " + neighbor.pos + ", my pos is: " + this.pos);
           PtVector e = neighbor.pos.getSubtractedVector(this.pos); // e* = r2 - r1
-          //println("e immediately is: " + e.toString());
           double dist = e.getLen(); // l = |e*|
           e.divByCon(dist); // e = e*/l
-          //println("e after division is: " + e.toString());
           // compute Hooke's law force along this spring's axis
           double stringF = -k * (restLen - dist); //f_s = -k_s(l_o - l)
           
@@ -88,10 +88,8 @@ class SpringNode {
           
           PtVector overallForce = e.getMultByCon(stringF - dampF); //f = (f_s - f_d) * e
           // push this side of the spring, and pull the other side
-          //println("accForces before add is: " + accForces.toString());
           //println("overallForce is: " + overallForce.toString());
           accForces.addVec(overallForce);
-          //println("accForces after add is: " + accForces.toString());
           neighbor.accForces.subtractVector(overallForce);
         }
       }

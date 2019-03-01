@@ -28,21 +28,21 @@ float moveX, moveY;
 // class accessible from anywhere else that holds our tuning 
 // parameters for the simulation
 static class ClothParams {
-  static double goalDT = 0.001; //the fraction of a second we simulate with each timestep
+  static double goalDT = 0.0005; //the fraction of a second we simulate with each timestep
   static boolean useDiags = false; //Do we want to use diagonal springs for extra stability?
   
-  static float floor_height = 600; //location of the floor in Y coordinates
+  static float floor_height = 1500; //location of the floor in Y coordinates
   static float radius = 2; //radius of particle sphere
   static float mass = 1; //mass of particle
   
-  static float restLen = 40; //the resting length of each spring
+  static float restLen = 20; //the resting length of each spring
   static double k = 600000L; //stiffness of the spring
-  static double kd = 1000; //damping factor of spring motion
+  static double kd = 3000; //damping factor of spring motion
   static double gravity = 600000L; //acceleration due to gravity
   
-  static double userPullValue = 80000L; //strength of force added by user pull on spring
+  static double userPullValue = 8000L; //strength of force added by user pull on spring
   
-  static int springSystemLength = 10; //the number of squares that forms the spring system
+  static int springSystemLength = 30; //the number of nodes on each side of the the spring system
 }
 
 PtVector userForce = new PtVector(0,0,0); //vector storing user pulls on the string
@@ -56,7 +56,7 @@ void setup() {
   size(800, 600, P3D);
   surface.setTitle("Homework2_5611_Thread_Sim");
   //arguments: SprngSystem(double _k, double _kv, double grav, PtVector topPos, float floor_h)
-  ss = new SpringSystem(ClothParams.springSystemLength, new PtVector(width/5, 100, -20));
+  ss = new SpringSystem(ClothParams.springSystemLength, new PtVector(-100, -300, -20));
   print(ss.toString());
   startTime = millis();
   //camera = new PeasyCam(this, 400, 300, 0, 300);
@@ -197,24 +197,24 @@ void draw() {
     rotateX(rotY);
     endCamera();  
   }
-  /*
+  
   //check for forces being applied by user
   if (lf_pressed) {
-    userForce.addVec(new PtVector(-userPullValue,0,0));
+    userForce.addVec(new PtVector(-ClothParams.userPullValue,0,0));
   }
   if (rt_pressed) {
-    userForce.addVec(new PtVector(userPullValue,0,0));
+    userForce.addVec(new PtVector(ClothParams.userPullValue,0,0));
   }
   if (dn_pressed) {
-    userForce.addVec(new PtVector(0,0,userPullValue));
+    userForce.addVec(new PtVector(0,0,ClothParams.userPullValue));
   }
   if (up_pressed) {
-    userForce.addVec(new PtVector(0,0,-userPullValue));
+    userForce.addVec(new PtVector(0,0,-ClothParams.userPullValue));
   }
   // reset user force if no input (menaing no force applied)
   if (!lf_pressed && !dn_pressed && !rt_pressed && !up_pressed) {
     userForce = new PtVector(0,0,0);
-  }*/
+  }
   
   // draw objects in the system
   double timesteps = elapsedTime / ClothParams.goalDT;
@@ -228,7 +228,6 @@ void draw() {
   if (sim_started) { ss.run((int) timesteps, dt, userForce); }
   
   // ground....
-  //rect(0,floor_height-radius/2,1000,1);
   beginShape();
   fill(255,0,0);
   vertex(0, height, 20);

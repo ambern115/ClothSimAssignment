@@ -29,7 +29,7 @@ class SpringSystem {
         PtVector currNodePos = new PtVector(springTopLeftPos);
         currNodePos.addVec(new PtVector(0,(ClothParams.restLen * row),0));
         for (int col = 0; col < systemLength; col++) {
-          SpringNode n = new SpringNode(currNodePos);
+          SpringNode n = new SpringNode(currNodePos, row, col);
           nodes[row][col] = n;
           currNodePos = new PtVector(currNodePos.getAddVectors(new PtVector(ClothParams.restLen,0,0)));
         }
@@ -61,30 +61,29 @@ class SpringSystem {
   
   // adds a force to the end of the spring (the bottom nodes)
   // i'll think about how to re-implement this later!
-  /*
-  void AddForceToBottomSprings(PtVector force) {
+  
+  void AddForceToBottomNodes(PtVector force) {
     //also adds a fraction of the force to all other springs so they move more naturally
-    for (int row = systemLength - 1; row >= 0; row--) {
-      for (int col = 0; col < systemLength + 1; col++) {
+    for (int row = systemLength - 2; row >= 0; row--) {
+      for (int col = 0; col < systemLength; col++) {
         PtVector result = new PtVector(force);
         result.multByCon( ((float) row) / ((float) systemLength));
-        if (row < systemLength - 1) { vertSprings.get(row).get(col).userForce = result; }
-        if (col < systemLength) { horizSprings.get(row).get(col).userForce = result; }
+        nodes[row][col].userForce = result;
       }
     }
     // finally, adds a force to the end of the spring (the bottom nodes)
-    for (int col = 0; col < systemLength + 1; col++) {
-        vertSprings.get(systemLength - 1).get(col).userForce = new PtVector(force);
-        if (col < systemLength) { horizSprings.get(systemLength).get(col).userForce = new PtVector(force); }
+    for (int col = 0; col < systemLength; col++) {
+        nodes[systemLength-1][col].userForce = new PtVector(force);
     }
-  }*/
+  }
    
   //performs physics calculations on each node for timestep dt.
   void update(double dt) {
     // first, update all nodes' forces based on their neighbors
     for (int row = 0; row < systemLength; row++) {
       for (int col = 0; col < systemLength; col++) {
-        nodes[row][col].update();
+        // only update every other node in a row
+        if (row % 2 == col % 2) { nodes[row][col].update(); }
       }
     }
     
@@ -100,11 +99,10 @@ class SpringSystem {
   
   // Display all spring nodes to the screen
   void renderNodes() {
+    stroke(5);
     for (int row = 0; row < systemLength; row++) {
       for (int col = 0; col < systemLength; col++) {
         SpringNode n = nodes[row][col];
-        pushMatrix();
-        stroke(5);
         if (col+1 < systemLength) { //This node ---> node to the right
           line((float) n.pos.x, (float) n.pos.y, (float) n.pos.z, 
             (float) nodes[row][col+1].pos.x, (float) nodes[row][col+1].pos.y, (float) nodes[row][col+1].pos.z);
@@ -113,12 +111,6 @@ class SpringSystem {
           line((float) n.pos.x, (float) n.pos.y, (float) n.pos.z, 
             (float) nodes[row+1][col].pos.x, (float) nodes[row+1][col].pos.y, (float) nodes[row+1][col].pos.z);
         }
-        
-        translate((float)n.pos.x, (float)n.pos.y, (float)n.pos.z);
-        noStroke();
-        fill(0,255,0);
-        sphere(ClothParams.radius);
-        popMatrix();
       }
     }
   }
@@ -127,7 +119,7 @@ class SpringSystem {
   //performs all node physics updates, then renders each node.
   void run(int timesteps, double dt, PtVector bottomForce) {
     for (int i = 0; i < timesteps; i++) {
-      //AddForceToBottomSprings(bottomForce);
+      AddForceToBottomNodes(bottomForce);
       update(dt);
     }
     renderNodes();
