@@ -102,20 +102,46 @@ class SpringSystem {
   
   // Display all spring nodes to the screen
   void renderNodes() {
-    stroke(5);
+    //stroke(5);
+    noStroke();
+    fill(0,0,0);
+    beginShape(TRIANGLE_STRIP);
+    texture(img);
+    
     for (int row = 0; row < systemLength; row++) {
       for (int col = 0; col < systemLength; col++) {
         SpringNode n = nodes[row][col];
-        if (col+1 < systemLength) { //This node ---> node to the right
-          line((float) n.pos.x, (float) n.pos.y, (float) n.pos.z, 
-            (float) nodes[row][col+1].pos.x, (float) nodes[row][col+1].pos.y, (float) nodes[row][col+1].pos.z);
-        }
-        if (row+1 < systemLength) { //This node ---> node underneath
-          line((float) n.pos.x, (float) n.pos.y, (float) n.pos.z, 
-            (float) nodes[row+1][col].pos.x, (float) nodes[row+1][col].pos.y, (float) nodes[row+1][col].pos.z);
-        }
+        //vertex((float) n.pos.x, (float) n.pos.y, (float) n.pos.z);
+        //if (col < systemLength) { //This node ---> node to the right  
+          if (row+1 < systemLength) {
+            // if row odd! consider 0 even
+            if (row % 2 != 0) {
+              normal(0, 0, -1);
+              vertex((float) nodes[row][col].pos.x, (float) nodes[row][col].pos.y, (float) nodes[row][col].pos.z, (float) col/systemLength, (float) row/(systemLength-1));
+              vertex((float) nodes[row+1][col].pos.x, (float) nodes[row+1][col].pos.y, (float) nodes[row+1][col].pos.z, (float) col/systemLength, (float) (row+1)/(systemLength-1));
+            } else {
+              normal(0, 0, 1);
+              vertex((float) nodes[row][systemLength-col-1].pos.x, (float) nodes[row][systemLength-col-1].pos.y, (float) nodes[row][systemLength-col-1].pos.z, (float) (systemLength-col-1)/systemLength, (float) row/(systemLength-1));
+              vertex((float) nodes[row+1][systemLength-col-1].pos.x, (float) nodes[row+1][systemLength-col-1].pos.y, (float) nodes[row+1][systemLength-col-1].pos.z, (float) (systemLength-col-1)/systemLength, (float) (row+1)/(systemLength-1));
+            }
+          //}
+          
+          //vertex((float) nodes[row][col+1].pos.x, (float) nodes[row][col+1].pos.y, (float) nodes[row][col+1].pos.z);
+        
+          //line((float) n.pos.x, (float) n.pos.y, (float) n.pos.z, 
+          //  (float) nodes[row][col+1].pos.x, (float) nodes[row][col+1].pos.y, (float) nodes[row][col+1].pos.z);
+        
+      }
+       // if (row+1 < systemLength) { //This node ---> node underneath
+          
+          //vertex((float) nodes[row+1][col].pos.x, (float) nodes[row+1][col].pos.y, (float) nodes[row+1][col].pos.z);
+          //line((float) n.pos.x, (float) n.pos.y, (float) n.pos.z, 
+          //  (float) nodes[row+1][col].pos.x, (float) nodes[row+1][col].pos.y, (float) nodes[row+1][col].pos.z);
+      //  }
       }
     }
+    endShape();
+    
   }
   
   //runs the spring system for one frame.
