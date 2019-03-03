@@ -3,6 +3,7 @@ class SpringSystem {
   
   // the number of nodes, horizontally and vertically, in the SpringSystem
   int systemLength = 6;
+  PtVector airVel = new PtVector(0,0,0);
   
   //the position of the anchored spring at the top of the system
   PtVector springTopLeftPos = new PtVector(width / 5, 10, -20); 
@@ -13,9 +14,10 @@ class SpringSystem {
   }
   
   // spring system with tunable size and starting pos
-  SpringSystem(int len, PtVector topLeftPos) {
+  SpringSystem(int len, PtVector topLeftPos, PtVector airV) {
     systemLength = len;
     springTopLeftPos = topLeftPos;
+    airVel = airV;
     
     makeNodes();
   }
@@ -29,7 +31,7 @@ class SpringSystem {
         PtVector currNodePos = new PtVector(springTopLeftPos);
         currNodePos.addVec(new PtVector(0,(ClothParams.restLen * row),0));
         for (int col = 0; col < systemLength; col++) {
-          SpringNode n = new SpringNode(currNodePos, row, col);
+          SpringNode n = new SpringNode(currNodePos, row, col, airVel);
           nodes[row][col] = n;
           currNodePos = new PtVector(currNodePos.getAddVectors(new PtVector(ClothParams.restLen,0,0)));
         }
@@ -83,6 +85,7 @@ class SpringSystem {
     for (int row = 0; row < systemLength; row++) {
       for (int col = 0; col < systemLength; col++) {
         // only update every other node in a row
+        nodes[row][col].addDrag();
         if (row % 2 == col % 2) { nodes[row][col].update(); }
       }
     }
@@ -122,8 +125,7 @@ class SpringSystem {
       AddForceToBottomNodes(bottomForce);
       update(dt);
     }
-    renderNodes();
+    renderNodes(); //<>//
     //println(this.toString());
-    boolean garbage = true;
   }
 }

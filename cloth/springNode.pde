@@ -10,15 +10,20 @@ class SpringNode {
   float mass;
   float radius;
   float restLen; // the rest length between this node and other nodes
+  
   double k; //the spring constant
   double kd; //the damping constant
   float floor;
+  
+  PtVector airVel;
+  
   PtVector vel; // velocity
   PtVector pos; //position of the node
   
   int row; //the row of this particle in the node list
   int col; //the column of this particle in the node list
   
+  boolean calcDiags = false; //whether or not to use diagonal spring-dampers
   PtVector accForces = new PtVector(0,0,0); //accumulated forces to be integrated at the end of timestep
   
   SpringNode[][] neighbors; //a 3x3 array of all this node's immediate neighbors, in [row][column] format
@@ -28,7 +33,7 @@ class SpringNode {
   // neighbors[1][1] should be this node
   
   //Standard SpringNode constructor initializes necessary info
-  SpringNode(PtVector p, int r, int c) {
+  SpringNode(PtVector p, int r, int c, PtVector airV) {
     mass = ClothParams.mass;
     radius = ClothParams.radius;
     
@@ -38,6 +43,8 @@ class SpringNode {
     
     floor = ClothParams.floor_height;
     gravity = ClothParams.gravity;
+    
+    airVel = airV;
     
     vel = new PtVector(0,0,0);
     pos = p;
@@ -52,18 +59,19 @@ class SpringNode {
   // if there isn't a neighbor at index i,j, then neighbors[i][j] = null.
   // setDiags is a flag that's set if we want our node to also have springs attached
   // to diagonals.
-  void set_neighbors(SpringNode[][] nodes, int myRow, int myCol, boolean setDiags) {
+  void set_neighbors(SpringNode[][] nodes, int myRow, int myCol, boolean calcDiags) {
     //println("I am node " + this.toString() + " and I am setting my neighbors");
+    this.calcDiags = calcDiags;
     neighbors = new SpringNode[neighborsLen][neighborsLen];
     int nRow = 0;
     for (int i = myRow-1; i <= myRow+1; i++) {
       int nCol = 0;
       for (int j = myCol-1; j <= myCol+1; j++) {
         //println("setting neighbors in loop, i is " + i + ", j is " + j);
-        if ((i >= 0 && j >= 0 && i < nodes.length && j < nodes[i].length) && (setDiags || abs(nRow-nCol) != 2)) {
+        if ((i >= 0 && j >= 0 && i < nodes.length && j < nodes[i].length)) {
           neighbors[nRow][nCol] = nodes[i][j];
           //println("just set neighbor " + nRow + ", " + nCol);
-        } else { neighbors[nRow][nCol] = null;  println("just got no neighbor at " + nRow + ", " + nCol); }
+        } else { neighbors[nRow][nCol] = null; }//  println("just got no neighbor at " + nRow + ", " + nCol); }
         nCol++;
       }
       nRow++;
@@ -96,11 +104,12 @@ class SpringNode {
   //uses spring forces between it and all neighbor nodes to calculate this
   void update() {
     //println("I am particle at row " + row + " and col " + col);
-    accForces.addVec(userForce);
+    accForces.addVec(userForce); //force from user input
     for (int nRow = 0; nRow < neighborsLen; nRow++) {
       for (int nCol = 0; nCol < neighborsLen; nCol++) {
         // first, ensure this is a valid neighbor to calculate forces for
-        if (neighbors[nRow][nCol] == null || nRow == nCol) { continue; }
+        if (neighbors[nRow][nCol] == null || nRow == nCol || 
+           (calcDiags == false && abs(nRow - nCol) % 2 == 0)) { continue; }
         else {
           SpringNode neighbor = neighbors[nRow][nCol];
           // calculate unit length vector between two nodes
@@ -126,6 +135,43 @@ class SpringNode {
     //println("I, particle at row " + row + " and col " + col + " have decided my accForces is: " + accForces.toString());
   }
   
+  // function that calculates drag on the triangles 
+  // defined by this point and the points below it,
+  // then adds drag to overall force
+  void addDrag() {
+    //look at neighbors below to form triangles, then calculate with them
+    for (int triangles = 0; triangles < 2; triangles++) {
+      if (neighbors[2][triangles] != null && neighbors[2][triangles+1] != null) {
+        SpringNode n1 = neighbors[2][triangles];
+        SpringNode n2 = neighbors[2][triangles+1];
+        SpringNode n3 = this;
+        //println("\nn1.vel is " + n1.vel.toString() + ", n2.vel is " + n2.vel.toString() + ", n3.vel is " + n3.vel.toString());
+        PtVector dragVel = n1.vel.getAddVectors(n2.vel).getAddVectors(n3.vel).divideByConstant(3); //(v1 + v2 + v3) / 3
+        dragVel.subtractVector(airVel); //v = ((v1 + v2 + v3) / 3) - v_air
+        //if (userForce.z != 0 && row == 2 && col == 2) { println("dragVel is " + dragVel.toString()); }
+        //println("|v|^2 is: " + Math.pow(dragVel.getLen(), 2));
+        
+        // n* = (r2 - r1) x (r3 - r1)
+        PtVector n_star = n2.pos.getSubtractedVector(n1.pos).getCross(n3.pos.getSubtractedVector(n1.pos));
+        //if (userForce.z != 0 && row == 2 && col == 2) { println("n* is " + n_star); }
+        // |v|^2an = ((|v|v.dot(n*)) / 2|n*|)n*
+        PtVector lenVSq_a_n = n_star.getMultByCon((dragVel.getLen() * (dragVel.dotVec(n_star))) / (2 * n_star.getLen()));
+        //if (userForce.z != 0 && row == 2 && col == 2) { println("v.dot(n*) is " + dragVel.dotVec(n_star)); }
+        //if (userForce.z != 0 && row == 2 && col == 2) { println("lenVSq_a_n is " + lenVSq_a_n); }
+        //f_aero = -(1/2)*p*|v|^2*c_d*a*n
+        PtVector dragForce = lenVSq_a_n.getMultByCon(-0.5).getMultByCon(ClothParams.airDensity).getMultByCon(ClothParams.cd);
+        dragForce.divByCon(3); //f_aero on each particle is f_aero / 3
+        
+        /*if (userForce.z != 0 && row == 2 && col == 2) { 
+          println("Drag force number " + triangles + " on row " + row + " and col " + col + " is " + dragForce); 
+        }*/
+        n1.accForces.addVec(dragForce);
+        n2.accForces.addVec(dragForce);
+        n3.accForces.addVec(dragForce);
+      }
+    }
+  }
+  
   // collision detection and response...
   // currently only works with floor surface
   void checkCollisions() {
@@ -149,6 +195,7 @@ class SpringNode {
     pos.addVec(vel.getMultByCon(dt)); //p += v*dt
     
     accForces = new PtVector(0,0,0);
+    userForce = new PtVector(0,0,0);
   }
   
   //Maybe it's best to render things as one system, given this implementation?
