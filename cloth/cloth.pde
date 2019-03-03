@@ -25,6 +25,8 @@ float rotY, rotX;
 float zoom;
 float moveX, moveY;
 
+PImage img;
+
 // class accessible from anywhere else that holds our tuning 
 // parameters for the simulation
 static class ClothParams {
@@ -59,6 +61,9 @@ void setup() {
   ss = new SpringSystem(ClothParams.springSystemLength, new PtVector(width/3, 100, -20));
   //print(ss.toString());
   startTime = millis();
+  
+  img = loadImage("sexybrian.jpg");
+  textureMode(NORMAL);
   //camera = new PeasyCam(this, 400, 300, 0, 300);
 }
 
