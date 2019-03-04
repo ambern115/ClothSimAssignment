@@ -107,7 +107,7 @@ class SpringNode {
     for (int nRow = 0; nRow < neighborsLen; nRow++) {
       for (int nCol = 0; nCol < neighborsLen; nCol++) {
         // first, ensure this is a valid neighbor to calculate forces for
-        if (neighbors[nRow][nCol] == null || nRow == nCol || 
+        if (neighbors[nRow][nCol] == null || (nRow == 1 && nCol == 1) || 
            (calcDiags == false && abs(nRow - nCol) % 2 == 0)) { continue; }
         else {
           SpringNode neighbor = neighbors[nRow][nCol];
@@ -143,26 +143,18 @@ class SpringNode {
         SpringNode n1 = neighbors[2][triangles];
         SpringNode n2 = neighbors[2][triangles+1];
         SpringNode n3 = this;
-        //println("\nn1.vel is " + n1.vel.toString() + ", n2.vel is " + n2.vel.toString() + ", n3.vel is " + n3.vel.toString());
+        
         PtVector dragVel = n1.vel.getAddVectors(n2.vel).getAddVectors(n3.vel).divideByConstant(3); //(v1 + v2 + v3) / 3
         dragVel.subtractVector(airVel); //v = ((v1 + v2 + v3) / 3) - v_air
-        //if (userForce.z != 0 && row == 2 && col == 2) { println("dragVel is " + dragVel.toString()); }
-        //println("|v|^2 is: " + Math.pow(dragVel.getLen(), 2));
         
         // n* = (r2 - r1) x (r3 - r1)
         PtVector n_star = n2.pos.getSubtractedVector(n1.pos).getCross(n3.pos.getSubtractedVector(n1.pos));
-        //if (userForce.z != 0 && row == 2 && col == 2) { println("n* is " + n_star); }
         // |v|^2an = ((|v|v.dot(n*)) / 2|n*|)n*
         PtVector lenVSq_a_n = n_star.getMultByCon((dragVel.getLen() * (dragVel.dotVec(n_star))) / (2 * n_star.getLen()));
-        //if (userForce.z != 0 && row == 2 && col == 2) { println("v.dot(n*) is " + dragVel.dotVec(n_star)); }
-        //if (userForce.z != 0 && row == 2 && col == 2) { println("lenVSq_a_n is " + lenVSq_a_n); }
         //f_aero = -(1/2)*p*|v|^2*c_d*a*n
         PtVector dragForce = lenVSq_a_n.getMultByCon(-0.5).getMultByCon(ClothParams.airDensity).getMultByCon(ClothParams.cd);
         dragForce.divByCon(3); //f_aero on each particle is f_aero / 3
         
-        /*if (userForce.z != 0 && row == 2 && col == 2) { 
-          println("Drag force number " + triangles + " on row " + row + " and col " + col + " is " + dragForce); 
-        }*/
         synchronized(n1.accForces) { n1.accForces.addVec(dragForce); }
         synchronized(n2.accForces) { n2.accForces.addVec(dragForce); }
         synchronized(n3.accForces) { n3.accForces.addVec(dragForce);}
@@ -190,7 +182,26 @@ class SpringNode {
     acc.addVec(new PtVector(0,gravity,0)); //a += G
     vel.addVec(acc.getMultByCon(dt)); //v += a*dt
     //println("my vel is: " + vel.toString());
-    synchronized (pos) { pos.addVec(vel.getMultByCon(dt)); } //p += v*dt
+    synchronized (pos) { 
+      pos.addVec(vel.getMultByCon(dt));
+      //check for breakages in neighbor springs
+      if (ClothParams.tearable) {
+        for (int row = 0; row < neighbors.length; row++) {
+          for (int col = 0; col < neighbors.length; col++) {
+            //if this is a valid spring connection and the length of the spring is over breakLen
+            if (neighbors[row][col] != null && (row != 1 || col != 1) && 
+             (calcDiags == true || abs(row - col) % 2 != 0) && 
+             Math.abs(pos.getLen() - neighbors[row][col].pos.getLen()) >= ClothParams.breakLen) {
+               println("breaking a node at pos " + this.toString() + ", connects to node at pos " + neighbors[row][col].toString());
+               SpringNode thisInNeighbor = neighbors[row][col].neighbors[1+(1 - row)][1+(1 - col)];
+               if (thisInNeighbor != null) { synchronized (thisInNeighbor) { thisInNeighbor = null; } }
+               if (neighbors[row][col] != null) { synchronized(neighbors[row][col]) { neighbors[row][col] = null; } }
+               println("done breaking node at pos " + this.toString()); //<>//
+             }
+          }
+        }
+      }
+    } //p += v*dt
     
     accForces = new PtVector(0,0,0);
     userForce = new PtVector(0,0,0);

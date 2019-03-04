@@ -113,7 +113,8 @@ class SpringSystem {
     noStroke();
     fill(0,0,0);
     beginShape(TRIANGLE_STRIP);
-    texture(img);
+    //texture(img);
+    fill(255,0,0);
     
     for (int row = 0; row < systemLength; row++) {
       for (int col = 0; col < systemLength; col++) {

@@ -32,6 +32,7 @@ PImage img;
 static class ClothParams {
   static double goalDT = 0.0002; //the fraction of a second we simulate with each timestep
   static final boolean multithread = true; //do we want to turn on multithreading?
+  static final boolean tearable = false;
   static final short numPhysThreads = 6; //the number of physics threads running in the background
   static boolean useDiags = false; //Do we want to use diagonal springs for extra stability?
   
@@ -39,8 +40,9 @@ static class ClothParams {
   static float radius = 2; //radius of particle sphere
   static float mass = 1; //mass of particle
   
-  static float restLen = 10; //the resting length of each spring
-  static double k = 60000; //stiffness of the spring
+  static float restLen = 10; //the resting length of each springs
+  static float breakLen = restLen * 3; //the length a spring must be for it to break
+  static double k = 3000; //stiffness of the spring
   static double kd = 800; //damping factor of spring motion
   static double gravity = 3000; //acceleration due to gravity
   
@@ -50,7 +52,7 @@ static class ClothParams {
   // three components of air velocity, for drag. Can't make this into a static PtVector
   static double airVelX = 00000;
   static double airVelY = 00000;
-  static double airVelZ = 55000;
+  static double airVelZ = 0;//55000;
   
   static double userPullValue = 5000; //strength of force added by user pull on spring
   
