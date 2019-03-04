@@ -31,6 +31,7 @@ PImage img;
 // parameters for the simulation
 static class ClothParams {
   static double goalDT = 0.0002; //the fraction of a second we simulate with each timestep
+  static final boolean multithread = true; //do we want to turn on multithreading?
   static final short numPhysThreads = 6; //the number of physics threads running in the background
   static boolean useDiags = false; //Do we want to use diagonal springs for extra stability?
   
@@ -49,11 +50,11 @@ static class ClothParams {
   // three components of air velocity, for drag. Can't make this into a static PtVector
   static double airVelX = 00000;
   static double airVelY = 00000;
-  static double airVelZ = 60000;
+  static double airVelZ = 55000;
   
   static double userPullValue = 5000; //strength of force added by user pull on spring
   
-  static int springSystemLength = 60; //the number of nodes on each side of the the spring system
+  static int springSystemLength = 30; //the number of nodes on each side of the the spring system
 }
 
 // standing velocity of the air as a PtVector
@@ -79,18 +80,20 @@ void setup() {
   img = loadImage("sexybrian.jpg");
   textureMode(NORMAL);
   
-  // get the physics threads rolling
-  physThreads = new PhysicsUpdateThread[ClothParams.numPhysThreads];
-  int extraRows = ss.systemLength % ClothParams.numPhysThreads;
-  int rowIncrement = ss.systemLength / ClothParams.numPhysThreads;
-  int startingRow = 0;
-  int endingRow = ss.systemLength / ClothParams.numPhysThreads;
-  for (int i = 0; i < ClothParams.numPhysThreads; i++) {
-    endingRow = startingRow + rowIncrement;
-    if (extraRows > 0) { endingRow++; extraRows--; }
-    physThreads[i] = new PhysicsUpdateThread(ss, startingRow, endingRow);
-    physThreads[i].start();
-    startingRow = endingRow;
+  if (ClothParams.multithread) {
+    // get the physics threads rolling
+    physThreads = new PhysicsUpdateThread[ClothParams.numPhysThreads];
+    int extraRows = ss.systemLength % ClothParams.numPhysThreads;
+    int rowIncrement = ss.systemLength / ClothParams.numPhysThreads;
+    int startingRow = 0;
+    int endingRow = ss.systemLength / ClothParams.numPhysThreads;
+    for (int i = 0; i < ClothParams.numPhysThreads; i++) {
+      endingRow = startingRow + rowIncrement;
+      if (extraRows > 0) { endingRow++; extraRows--; }
+      physThreads[i] = new PhysicsUpdateThread(ss, startingRow, endingRow);
+      physThreads[i].start();
+      startingRow = endingRow;
+    }
   }
   
   startTime = millis();
@@ -252,18 +255,19 @@ void draw() {
   }
   //else { println("lf_pressed is " + lf_pressed + ", dn_pressed is " + dn_pressed + ", rt_pressed is " + rt_pressed + ", up_pressed is " + up_pressed); }
   
-  // draw objects in the system
-  /*double timesteps = elapsedTime / ClothParams.goalDT;
-  double extraChance = timesteps - ((int) timesteps);
-  if (random(0,1) <= extraChance) {
-    timesteps += 1;
-  }
-  double dt = ClothParams.goalDT / (int) timesteps;
-  
-  // only run if the user has hit enter
-  if (sim_started) { ss.run(min((int) timesteps, 200), dt, userForce); }*/
+  if (!ClothParams.multithread) {
+    double timesteps = elapsedTime / ClothParams.goalDT;
+    double extraChance = timesteps - ((int) timesteps);
+    if (random(0,1) <= extraChance) {
+      timesteps += 1;
+    }
+    double dt = ClothParams.goalDT / (int) timesteps;
+    
+    ss.run_single_thread(min((int) timesteps, 200), dt, userForce);
+  } else { //when multithreading, the physics threads perform most physics calculations for us
   ss.AddForceToBottomNodes(userForce);
   ss.renderNodes();
+  }
   
   // ground....
   beginShape();

@@ -87,32 +87,16 @@ class SpringSystem {
     }
   }
    
-  //performs physics calculations on each node for timestep dt.
+  //performs single-thread physics calculations on each node for timestep dt.
   void update(double dt) {
-    //println("\nupdating\n");
-    //long OGStartTime = System.nanoTime();
-    //long startTime = System.nanoTime();
-    // first, update all nodes' forces based on their neighbors
-    //long startTime = System.nanoTime();
-    //ExecutorService physThreader = Executors.newCachedThreadPool();
     for (int row = 0; row < systemLength; row++) {
       for (int col = 0; col < systemLength; col++) {
-        //Runnable physThread = new NodePhysicsThread(nodes[row][col]);
-        //physThreader.execute(physThread);
         // only update every other node in a row
         nodes[row][col].addDrag();
         if (row % 2 == col % 2) { nodes[row][col].update(); }
       }
     }
-    //physThreader.shutdown();
-    //try { boolean term = physThreader.awaitTermination(300, TimeUnit.MILLISECONDS); 
-    //  if (!term) { println("Timed out on physThreader"); }
-    //}
-    //catch (Exception e) { println("Main thread interrupted"); }
-    //while (!physThreader.isTerminated()) { }
-    //long endTime = System.nanoTime();
-    //println("nanoseconds spent on physics updates: " + (endTime - startTime));
-    //println("\n");
+    
     //next, check collisions and integrate forces
     //NOTE: don't bother with doing this for top row, they're fixed
     for (int row = 1; row < systemLength; row++) {
@@ -125,7 +109,6 @@ class SpringSystem {
   
   // Display all spring nodes to the screen
   void renderNodes() {
-    //println("\nrendering nodes\n");
     //stroke(5);
     noStroke();
     fill(0,0,0);
@@ -163,14 +146,13 @@ class SpringSystem {
     endShape();
   }
   
-  //runs the spring system for one frame.
+  //runs the spring system for one frame on one single thread.
   //performs all node physics updates, then renders each node.
-  void run(int timesteps, double dt, PtVector bottomForce) {
+  void run_single_thread(int timesteps, double dt, PtVector bottomForce) {
     for (int i = 0; i < timesteps; i++) {
       AddForceToBottomNodes(bottomForce);
       update(dt);
     }
     renderNodes();
-    //println(this.toString());
   }
 }
