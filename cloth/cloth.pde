@@ -31,28 +31,29 @@ PImage img;
 // parameters for the simulation
 static class ClothParams {
   static double goalDT = 0.0002; //the fraction of a second we simulate with each timestep
+  static final short numPhysThreads = 6; //the number of physics threads running in the background
   static boolean useDiags = false; //Do we want to use diagonal springs for extra stability?
   
   static float floor_height = 1500; //location of the floor in Y coordinates
   static float radius = 2; //radius of particle sphere
   static float mass = 1; //mass of particle
   
-  static float restLen = 20; //the resting length of each spring
-  static double k = 1000000L; //stiffness of the spring
-  static double kd = 60000; //damping factor of spring motion
-  static double gravity = 900000L; //acceleration due to gravity
+  static float restLen = 10; //the resting length of each spring
+  static double k = 60000; //stiffness of the spring
+  static double kd = 800; //damping factor of spring motion
+  static double gravity = 3000; //acceleration due to gravity
   
   static double airDensity = .0012; //the density of the air, for calculating drag
   static double cd = 0.00001; //the drag coefficient
   
   // three components of air velocity, for drag. Can't make this into a static PtVector
-  static double airVelX = 0;
-  static double airVelY = 0;
-  static double airVelZ = 0;
+  static double airVelX = 00000;
+  static double airVelY = 00000;
+  static double airVelZ = 60000;
   
-  static double userPullValue = 50000L; //strength of force added by user pull on spring
+  static double userPullValue = 5000; //strength of force added by user pull on spring
   
-  static int springSystemLength = 20; //the number of nodes on each side of the the spring system
+  static int springSystemLength = 60; //the number of nodes on each side of the the spring system
 }
 
 // standing velocity of the air as a PtVector
@@ -61,6 +62,10 @@ PtVector airVel = new PtVector(ClothParams.airVelX, ClothParams.airVelY, ClothPa
 PtVector userForce = new PtVector(0,0,0); //vector storing user pulls on the string
 
 SpringSystem ss;
+
+PhysicsUpdateThread[] physThreads; // the array of physics threads
+PhysicsUpdateThread physThread1; //the first thread on which physics are calculated
+PhysicsUpdateThread physThread2; //the second thread on which physics are calculated
 
 boolean sim_started = false; //true if the spring rendering has begun
 
@@ -71,11 +76,24 @@ void setup() {
   //arguments: SprngSystem(double _k, double _kv, double grav, PtVector topPos, float floor_h)
   ss = new SpringSystem(ClothParams.springSystemLength, new PtVector(width/3, 100, -20), airVel);
   //print(ss.toString());
-  startTime = millis();
-  
   img = loadImage("sexybrian.jpg");
   textureMode(NORMAL);
-  //camera = new PeasyCam(this, 400, 300, 0, 300);
+  
+  // get the physics threads rolling
+  physThreads = new PhysicsUpdateThread[ClothParams.numPhysThreads];
+  int extraRows = ss.systemLength % ClothParams.numPhysThreads;
+  int rowIncrement = ss.systemLength / ClothParams.numPhysThreads;
+  int startingRow = 0;
+  int endingRow = ss.systemLength / ClothParams.numPhysThreads;
+  for (int i = 0; i < ClothParams.numPhysThreads; i++) {
+    endingRow = startingRow + rowIncrement;
+    if (extraRows > 0) { endingRow++; extraRows--; }
+    physThreads[i] = new PhysicsUpdateThread(ss, startingRow, endingRow);
+    physThreads[i].start();
+    startingRow = endingRow;
+  }
+  
+  startTime = millis();
 }
 
 void keyPressed() {
@@ -235,7 +253,7 @@ void draw() {
   //else { println("lf_pressed is " + lf_pressed + ", dn_pressed is " + dn_pressed + ", rt_pressed is " + rt_pressed + ", up_pressed is " + up_pressed); }
   
   // draw objects in the system
-  double timesteps = elapsedTime / ClothParams.goalDT;
+  /*double timesteps = elapsedTime / ClothParams.goalDT;
   double extraChance = timesteps - ((int) timesteps);
   if (random(0,1) <= extraChance) {
     timesteps += 1;
@@ -243,7 +261,9 @@ void draw() {
   double dt = ClothParams.goalDT / (int) timesteps;
   
   // only run if the user has hit enter
-  if (sim_started) { ss.run((int) timesteps, dt, userForce); }
+  if (sim_started) { ss.run(min((int) timesteps, 200), dt, userForce); }*/
+  ss.AddForceToBottomNodes(userForce);
+  ss.renderNodes();
   
   // ground....
   beginShape();

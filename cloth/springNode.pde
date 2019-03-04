@@ -103,8 +103,7 @@ class SpringNode {
   // sets the physics for this node for the next timestep
   //uses spring forces between it and all neighbor nodes to calculate this
   void update() {
-    //println("I am particle at row " + row + " and col " + col);
-    accForces.addVec(userForce); //force from user input
+    synchronized(accForces) { accForces.addVec(userForce); } //force from user input
     for (int nRow = 0; nRow < neighborsLen; nRow++) {
       for (int nCol = 0; nCol < neighborsLen; nCol++) {
         // first, ensure this is a valid neighbor to calculate forces for
@@ -124,11 +123,10 @@ class SpringNode {
           double dampF = kd * velDiff.dotVec(e); //f_d = -k_d * dot(v_diff, e)
           
           PtVector overallForce = e.getMultByCon(stringF - dampF); //f = (f_s - f_d) * e
-          //println("My overallForce at current step is: " + overallForce.toString());
           // push this side of the spring, and pull the other side
           //println("overallForce is: " + overallForce.toString());
-          accForces.addVec(overallForce);
-          neighbor.accForces.subtractVector(overallForce);
+          synchronized(accForces) { accForces.addVec(overallForce); }
+          synchronized(neighbor.accForces) { neighbor.accForces.subtractVector(overallForce); }
         }
       }
     }
@@ -165,9 +163,9 @@ class SpringNode {
         /*if (userForce.z != 0 && row == 2 && col == 2) { 
           println("Drag force number " + triangles + " on row " + row + " and col " + col + " is " + dragForce); 
         }*/
-        n1.accForces.addVec(dragForce);
-        n2.accForces.addVec(dragForce);
-        n3.accForces.addVec(dragForce);
+        synchronized(n1.accForces) { n1.accForces.addVec(dragForce); }
+        synchronized(n2.accForces) { n2.accForces.addVec(dragForce); }
+        synchronized(n3.accForces) { n3.accForces.addVec(dragForce);}
       }
     }
   }
@@ -177,7 +175,7 @@ class SpringNode {
   void checkCollisions() {
     if (pos.y+radius > floor) {
       vel.y *= -collisionDamp;
-      pos.y = floor - radius;
+      synchronized (pos) { pos.y = floor - radius; }
     }
   }
   
@@ -192,21 +190,9 @@ class SpringNode {
     acc.addVec(new PtVector(0,gravity,0)); //a += G
     vel.addVec(acc.getMultByCon(dt)); //v += a*dt
     //println("my vel is: " + vel.toString());
-    pos.addVec(vel.getMultByCon(dt)); //p += v*dt
+    synchronized (pos) { pos.addVec(vel.getMultByCon(dt)); } //p += v*dt
     
     accForces = new PtVector(0,0,0);
     userForce = new PtVector(0,0,0);
   }
-  
-  //Maybe it's best to render things as one system, given this implementation?
-  /*void render() {
-    pushMatrix();
-    fill(0,255,0);
-    stroke(5);
-    line((float) top.x, (float) top.y, (float) top.z, (float) bottom.x, (float) bottom.y, (float) bottom.z);
-    translate((float)bottom.x, (float)bottom.y, (float)bottom.z);
-    noStroke();
-    sphere(radius);
-    popMatrix();
-  }*/
 }
