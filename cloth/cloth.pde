@@ -32,7 +32,7 @@ PImage img;
 static class ClothParams {
   static double goalDT = 0.0002; //the fraction of a second we simulate with each timestep
   static final boolean multithread = true; //do we want to turn on multithreading?
-  static final boolean tearable = true; //cloth can be torn if it stretches too much
+  static final boolean tearable = false; //cloth can be torn if it stretches too much
   static final short numPhysThreads = 6; //the number of physics threads running in the background
   static boolean useDiags = false; //Do we want to use diagonal springs for extra stability?
   
