@@ -1,4 +1,4 @@
-// Thread Simulation
+// Cloth Simulation
 // Amber Nelson (nels9242) & Michael Biggers (bigge019)
 
 // initialize global variables
@@ -27,36 +27,46 @@ float moveX, moveY;
 
 PImage img;
 
-// class accessible from anywhere else that holds our tuning 
+enum FixedMethod {
+    LEFT,
+    FLAG_LEFT,
+    RIGHT,
+    BOTTOM,
+    TOP
+  }
+
+// static class accessible from anywhere that holds our tuning 
 // parameters for the simulation
 static class ClothParams {
   static double goalDT = 0.0002; //the fraction of a second we simulate with each timestep
   static final boolean multithread = true; //do we want to turn on multithreading?
   static final boolean tearable = false; //cloth can be torn if it stretches too much
-  static final short numPhysThreads = 6; //the number of physics threads running in the background
+  static final short numPhysThreads = 12; //the number of physics threads running in the background
   static boolean useDiags = false; //Do we want to use diagonal springs for extra stability?
   
-  static float floor_height = 1500; //location of the floor in Y coordinates
+  static float floor_height = 600; //location of the floor in Y coordinates
   static float radius = 2; //radius of particle sphere
   static float mass = 1; //mass of particle
   
   static float restLen = 10; //the resting length of each springs
-  static float breakLen = restLen * 3; //the length a spring must be for it to break
-  static double k = 3000; //stiffness of the spring
-  static double kd = 800; //damping factor of spring motion
-  static double gravity = 3000; //acceleration due to gravity
+  static float breakLen = restLen * 1.6; //the length a spring must be for it to break
+  static double k = 7000; //stiffness of the spring
+  static double kd = 1000; //damping factor of spring motion
+  static double gravity = 500; //acceleration due to gravity
   
   static double airDensity = .0012; //the density of the air, for calculating drag
   static double cd = 0.00001; //the drag coefficient
   
   // three components of air velocity, for drag. Can't make this into a static PtVector
-  static double airVelX = 00000;
-  static double airVelY = 00000;
-  static double airVelZ = 0;//55000;
+  static double airVelX =  50000;
+  static double airVelY = - 5000;
+  static double airVelZ =  10000;//55000;
   
   static double userPullValue = 5000; //strength of force added by user pull on spring
   
-  static int springSystemLength = 30; //the number of nodes on each side of the the spring system
+  static int springSystemHeight = 30; //the number of nodes on the tall side of the spring system
+  static int springSystemLength = 40; //the number of nodes on the long side of the spring system
+  static FixedMethod fixedSide = FixedMethod.FLAG_LEFT; //the side of the spring system that's fixed
 }
 
 // standing velocity of the air as a PtVector
@@ -75,9 +85,10 @@ boolean sim_started = false; //true if the spring rendering has begun
 // initialize window
 void setup() {
   size(800, 600, P3D);
-  surface.setTitle("Homework2_5611_Thread_Sim");
+  surface.setTitle("Really Cool Flag!");
   //arguments: SprngSystem(double _k, double _kv, double grav, PtVector topPos, float floor_h)
-  ss = new SpringSystem(ClothParams.springSystemLength, new PtVector(width/3, 100, -20), airVel);
+  ss = new SpringSystem(ClothParams.springSystemHeight, ClothParams.springSystemLength, 
+                        ClothParams.fixedSide, new PtVector(width/3, 000, -20), airVel);
   //print(ss.toString());
   img = loadImage("sexybrian.jpg");
   textureMode(NORMAL);
@@ -85,10 +96,10 @@ void setup() {
   if (ClothParams.multithread) {
     // get the physics threads rolling
     physThreads = new PhysicsUpdateThread[ClothParams.numPhysThreads];
-    int extraRows = ss.systemLength % ClothParams.numPhysThreads;
-    int rowIncrement = ss.systemLength / ClothParams.numPhysThreads;
+    int extraRows = ss.systemHeight % ClothParams.numPhysThreads;
+    int rowIncrement = ss.systemHeight / ClothParams.numPhysThreads;
     int startingRow = 0;
-    int endingRow = ss.systemLength / ClothParams.numPhysThreads;
+    int endingRow = ss.systemHeight / ClothParams.numPhysThreads;
     for (int i = 0; i < ClothParams.numPhysThreads; i++) {
       endingRow = startingRow + rowIncrement;
       if (extraRows > 0) { endingRow++; extraRows--; }
@@ -230,7 +241,9 @@ void draw() {
     // draw text here so it's not affected by cam movement
     textSize(14);
     fill(0,0,0,255);
-    text(("                 frame rate: " + frameRate), 4, -18);    
+    text(("                 Number of Spring Nodes: " + ClothParams.springSystemHeight*ClothParams.springSystemLength +
+          " (" + ClothParams.springSystemHeight + "x" + ClothParams.springSystemLength + ")" +
+          "\n                  Framerate: " + frameRate), 4, -18);
     translate(moveX,moveY,zoom);
     rotateY(rotX);
     rotateX(rotY);
@@ -268,7 +281,9 @@ void draw() {
     ss.run_single_thread(min((int) timesteps, 200), dt, userForce);
   } else { //when multithreading, the physics threads perform most physics calculations for us
   ss.AddForceToBottomNodes(userForce);
-  ss.renderNodes();
+  //ss.renderNodes();
+  //ss.renderNodesAsGrid();
+  ss.renderNodeTriangles();
   }
   
   // ground....

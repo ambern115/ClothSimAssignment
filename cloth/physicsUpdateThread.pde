@@ -39,11 +39,10 @@ class PhysicsUpdateThread implements Runnable {
      if (ss.calcBarrier.getNumberWaiting() == 0 && ss.calcBarrier.isBroken()) { ss.calcBarrier.reset(); }
      
      //next, check collisions and integrate forces
-     //NOTE: don't bother with doing this for top row, they're fixed
-     for (int row = max(1, startRow); row < endRow; row++) {
+     for (int row = startRow; row < endRow; row++) {
        for (int col = 0; col < ss.nodes[0].length; col++) {
-         ss.nodes[row][col].checkCollisions();
          ss.nodes[row][col].integrate(dt);
+         //ss.nodes[row][col].checkCollisions();
        }
      }
      

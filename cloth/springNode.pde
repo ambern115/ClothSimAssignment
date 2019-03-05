@@ -2,7 +2,9 @@
 class SpringNode {
   
   double gravity;
-  float collisionDamp = 0.3; //the factor the node is multiplied by upon collisions with solid objects
+  float collisionYDamp = 0.1; //the factor the node is multiplied by upon collisions with solid objects
+  float collisionXDamp = 0.6;
+  float collisionZDamp = 0.6;
   
   PtVector overallForce = new PtVector(0,0,0);
   PtVector userForce = new PtVector(0,0,0);
@@ -24,6 +26,7 @@ class SpringNode {
   int col; //the column of this particle in the node list
   
   boolean calcDiags = false; //whether or not to use diagonal spring-dampers
+  boolean fixed = false; //is this spring node fixed and immovable?
   PtVector accForces = new PtVector(0,0,0); //accumulated forces to be integrated at the end of timestep
   
   SpringNode[][] neighbors; //a 3x3 array of all this node's immediate neighbors, in [row][column] format
@@ -33,7 +36,7 @@ class SpringNode {
   // neighbors[1][1] should be this node
   
   //Standard SpringNode constructor initializes necessary info
-  SpringNode(PtVector p, int r, int c, PtVector airV) {
+  SpringNode(PtVector p, int r, int c, PtVector airV, boolean f) {
     mass = ClothParams.mass;
     radius = ClothParams.radius;
     
@@ -53,6 +56,8 @@ class SpringNode {
     
     row = r;
     col = c;
+    
+    fixed = f;
   }
   
   // properly sets this node's neighbors so that they can be referenced later.
@@ -60,24 +65,19 @@ class SpringNode {
   // setDiags is a flag that's set if we want our node to also have springs attached
   // to diagonals.
   void set_neighbors(SpringNode[][] nodes, int myRow, int myCol, boolean calcDiags) {
-    //println("I am node " + this.toString() + " and I am setting my neighbors");
     this.calcDiags = calcDiags;
     neighbors = new SpringNode[neighborsLen][neighborsLen];
     int nRow = 0;
     for (int i = myRow-1; i <= myRow+1; i++) {
       int nCol = 0;
       for (int j = myCol-1; j <= myCol+1; j++) {
-        //println("setting neighbors in loop, i is " + i + ", j is " + j);
         if ((i >= 0 && j >= 0 && i < nodes.length && j < nodes[i].length)) {
           neighbors[nRow][nCol] = nodes[i][j];
-          //println("just set neighbor " + nRow + ", " + nCol);
-        } else { neighbors[nRow][nCol] = null; }//  println("just got no neighbor at " + nRow + ", " + nCol); }
+        } else { neighbors[nRow][nCol] = null; }
         nCol++;
       }
       nRow++;
     }
-    //this.print_neighbors();
-    //println("\n\n");
   }
   
   //prints basic identifying info about this node
@@ -124,13 +124,11 @@ class SpringNode {
           
           PtVector overallForce = e.getMultByCon(stringF - dampF); //f = (f_s - f_d) * e
           // push this side of the spring, and pull the other side
-          //println("overallForce is: " + overallForce.toString());
           synchronized(accForces) { accForces.addVec(overallForce); }
           synchronized(neighbor.accForces) { neighbor.accForces.subtractVector(overallForce); }
         }
       }
     }
-    //println("I, particle at row " + row + " and col " + col + " have decided my accForces is: " + accForces.toString());
   }
   
   // function that calculates drag on the triangles 
@@ -165,8 +163,12 @@ class SpringNode {
   // collision detection and response...
   // currently only works with floor surface
   void checkCollisions() {
-    if (pos.y+radius > floor) {
-      vel.y *= -collisionDamp;
+    if (pos.y >= floor) {
+      synchronized (vel) {
+        vel.x *= -collisionXDamp;
+        vel.y *= 0;
+        vel.z *= collisionZDamp;
+      }
       synchronized (pos) { pos.y = floor - radius; }
     }
   }
@@ -174,35 +176,28 @@ class SpringNode {
   //add accumulated forces to acceleration, and trickle integration down
   //currently done via Eulerian integration
   void integrate(double dt) {
-    //println("My pos is: " + pos.toString());
-    //println("accForces on node in row " + row + " and column " + col + " is: " + accForces.toString());
-    //println("My pos before integration is: " + pos.toString());
-    PtVector acc = accForces.divideByConstant(mass); //a = F/m
-    //println("acc is: " + acc.toString());
-    acc.addVec(new PtVector(0,gravity,0)); //a += G
-    vel.addVec(acc.getMultByCon(dt)); //v += a*dt
-    //println("my vel is: " + vel.toString());
-    synchronized (pos) { 
-      pos.addVec(vel.getMultByCon(dt));
-      //check for breakages in neighbor springs
-      if (ClothParams.tearable) {
-        for (int row = 0; row < neighbors.length; row++) {
-          for (int col = 0; col < neighbors.length; col++) {
-            //if this is a valid spring connection and the length of the spring is over breakLen
-            if (neighbors[row][col] != null && (row != 1 || col != 1) && 
+    if (!fixed) { //only integrate if this node is allowed to move
+      PtVector acc = accForces.divideByConstant(mass); //a = F/m
+      acc.addVec(new PtVector(0,gravity,0)); //a += G
+      vel.addVec(acc.getMultByCon(dt)); //v += a*dt
+      synchronized (pos) { pos.addVec(vel.getMultByCon(dt)); } //p += v*dt
+    }
+    //check for breakages in neighbor springs
+    if (ClothParams.tearable) {
+      for (int row = 0; row < neighbors.length; row++) {
+        for (int col = 0; col < neighbors.length; col++) {
+          //if this is a valid spring connection and the length of the spring is over breakLen
+          if (neighbors[row][col] != null && (row != 1 || col != 1) && 
              (calcDiags == true || abs(row - col) % 2 != 0) && 
              Math.abs(pos.getLen() - neighbors[row][col].pos.getLen()) >= ClothParams.breakLen) {
-               println("breaking a node at pos " + this.toString() + ", connects to node at pos " + neighbors[row][col].toString());
-               SpringNode thisInNeighbor = neighbors[row][col].neighbors[1+(1 - row)][1+(1 - col)];
-               if (thisInNeighbor != null) { synchronized (thisInNeighbor) { thisInNeighbor = null; } }
-               if (neighbors[row][col] != null) { synchronized(neighbors[row][col]) { neighbors[row][col] = null; } }
-               println("done breaking node at pos " + this.toString()); //<>//
-             }
-          }
+             //println("breaking a node at pos " + this.toString() + ", connects to node at pos " + neighbors[row][col].toString()); //<>//
+             SpringNode thisInNeighbor = neighbors[row][col].neighbors[1+(1 - row)][1+(1 - col)];
+             if (thisInNeighbor != null) { synchronized (thisInNeighbor) { thisInNeighbor = null; } }
+             if (neighbors[row][col] != null) { synchronized(neighbors[row][col]) { neighbors[row][col] = null; } }
+           }
         }
       }
-    } //p += v*dt
-    
+    }
     accForces = new PtVector(0,0,0);
     userForce = new PtVector(0,0,0);
   }
