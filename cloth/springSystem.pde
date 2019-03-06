@@ -105,18 +105,54 @@ class SpringSystem {
    
   //performs single-thread physics calculations on each node for timestep dt.
   void update(double dt) {
-    for (int row = 0; row < systemHeight; row++) {
-      for (int col = 0; col < systemLength; col++) {
-        // only update every other node in a row
-        nodes[row][col].addDrag();
-        if (row % 2 == col % 2) { nodes[row][col].update(); }
+    if (euler) { 
+      for (int row = 0; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          // only update every other node in a row
+          nodes[row][col].addDrag();
+          if (row % 2 == col % 2) { nodes[row][col].update(); }
+        }
       }
-    }
-    //next, check collisions and integrate forces
-    for (int row = 0; row < systemHeight; row++) {
-      for (int col = 0; col < systemLength; col++) {
-        nodes[row][col].checkCollisions();
-        nodes[row][col].integrate(dt);
+      //next, check collisions and integrate forces
+      for (int row = 0; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          nodes[row][col].checkCollisions();
+          nodes[row][col].integrate(dt);
+        }
+      }
+    } else {
+      // first, update all nodes' forces based on their neighbors
+      for (int row = 0; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          // only update every other node in a row
+          nodes[row][col].addDrag();
+          if (row % 2 == col % 2) { nodes[row][col].update(); }
+        }
+      }
+      
+      // second, set all nodes to have HALF velocity and HALF position with eurlerian integration..
+      for (int row = 1; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          //nodes[row][col].checkCollisions();      
+          nodes[row][col].integrateHalf(dt);
+        }
+      }
+      
+      // third recompute all nodes' forces based on their neighbors
+      for (int row = 0; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          // only update every other node in row
+          nodes[row][col].addDrag();
+          if (row % 2 == col % 2) { nodes[row][col].update(); }
+        }
+      }
+      
+      // fourth, use the forces from the halfway point at the original positions/velocities with the full timestep
+      for (int row = 1; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          //nodes[row][col].checkCollisions();
+          nodes[row][col].integrateFull(dt);
+        }
       }
     }
   }

@@ -22,37 +22,94 @@ class PhysicsUpdateThread implements Runnable {
      }
    }
    
+   
    //perform physics updates and position integrations on this thread's
    //portion of the total number of nodes
    void updateNodes() {
-     for (int row = startRow; row < endRow; row++) {
-       for (int col = 0; col < ss.nodes[0].length; col++) {
-         // only update every other node in a row
-         ss.nodes[row][col].addDrag();
-         if (row % 2 == col % 2) { ss.nodes[row][col].update(); }
+     if (euler) { // integrate using pure eulerian
+       for (int row = startRow; row < endRow; row++) {
+         for (int col = 0; col < ss.nodes[0].length; col++) {
+           // only update every other node in a row
+           ss.nodes[row][col].addDrag();
+           if (row % 2 == col % 2) { ss.nodes[row][col].update(); }
+         }
+       }
+       
+       try { ss.calcBarrier.await(); } //wait for all threads to catch up to this point
+       catch (Exception e) { println(e + " at barrier following updates by " + startRow); }
+       //last one out resets the barrier
+       if (ss.calcBarrier.getNumberWaiting() == 0 && ss.calcBarrier.isBroken()) { ss.calcBarrier.reset(); }
+       
+       //next, check collisions and integrate forces
+       for (int row = startRow; row < endRow; row++) {
+         for (int col = 0; col < ss.nodes[0].length; col++) {
+           ss.nodes[row][col].integrate(dt);
+           //ss.nodes[row][col].checkCollisions();
+         }
+       }
+       
+       try { ss.calcBarrier.await(); } //wait for all threads to catch up to this point
+       catch (Exception e) { println(e + " at barrier following integrations by " + startRow); }
+       //last one out resets the barrier
+       if (ss.calcBarrier.getNumberWaiting() == 0 && ss.calcBarrier.isBroken()) { ss.calcBarrier.reset(); } 
+     } else { // integrate using the midpoint method
+       for (int row = startRow; row < endRow; row++) {
+         for (int col = 0; col < ss.nodes[0].length; col++) {
+           // only update every other node in a row
+           ss.nodes[row][col].addDrag();
+           if (row % 2 == col % 2) { ss.nodes[row][col].update(); }
+         }
+       }
+       
+       try { ss.calcBarrier.await(); } //wait for all threads to catch up to this point
+       catch (Exception e) { println(e + " at barrier following updates by " + startRow); }
+       //last one out resets the barrier
+       if (ss.calcBarrier.getNumberWaiting() == 0 && ss.calcBarrier.isBroken()) { ss.calcBarrier.reset(); }
+       
+       //next, check collisions and integrate forces with half time step
+       for (int row = startRow; row < endRow; row++) {
+         for (int col = 0; col < ss.nodes[0].length; col++) {
+           ss.nodes[row][col].integrateHalf(dt);
+           //ss.nodes[row][col].checkCollisions();
+         }
+       }
+       
+       try { ss.calcBarrier.await(); } //wait for all threads to catch up to this point
+       catch (Exception e) { println(e + " at barrier following integrations by " + startRow); }
+       //last one out resets the barrier
+       if (ss.calcBarrier.getNumberWaiting() == 0 && ss.calcBarrier.isBroken()) { ss.calcBarrier.reset(); }
+       
+       
+       // recompute the forces applied to each node based on the half velocity and half position
+       for (int row = startRow; row < endRow; row++) {
+         for (int col = 0; col < ss.nodes[0].length; col++) {
+           // only update every other node in a row
+           ss.nodes[row][col].addDrag();
+           if (row % 2 == col % 2) { ss.nodes[row][col].update(); }
+         }
+       }
+       
+       try { ss.calcBarrier.await(); } //wait for all threads to catch up to this point
+       catch (Exception e) { println(e + " at barrier following updates by " + startRow); }
+       //last one out resets the barrier
+       if (ss.calcBarrier.getNumberWaiting() == 0 && ss.calcBarrier.isBroken()) { ss.calcBarrier.reset(); }
+   
+       //next, check collisions and integrate forces for full time step
+       for (int row = startRow; row < endRow; row++) {
+         for (int col = 0; col < ss.nodes[0].length; col++) {
+           ss.nodes[row][col].integrateFull(dt);
+           //ss.nodes[row][col].checkCollisions();
+         }
        }
      }
      
-     try { ss.calcBarrier.await(); } //wait for all threads to catch up to this point
-     catch (Exception e) { println(e + " at barrier following updates by " + startRow); }
-     //last one out resets the barrier
-     if (ss.calcBarrier.getNumberWaiting() == 0 && ss.calcBarrier.isBroken()) { ss.calcBarrier.reset(); }
-     
-     //next, check collisions and integrate forces
-     for (int row = startRow; row < endRow; row++) {
-       for (int col = 0; col < ss.nodes[0].length; col++) {
-         ss.nodes[row][col].integrate(dt);
-         //ss.nodes[row][col].checkCollisions();
-       }
-     }
-     
-     try { ss.calcBarrier.await(); } //wait for all threads to catch up to this point
-     catch (Exception e) { println(e + " at barrier following integrations by " + startRow); }
-     //last one out resets the barrier
-     if (ss.calcBarrier.getNumberWaiting() == 0 && ss.calcBarrier.isBroken()) { ss.calcBarrier.reset(); } 
+      try { ss.calcBarrier.await(); } //wait for all threads to catch up to this point
+      catch (Exception e) { println(e + " at barrier following integrations by " + startRow); }
+      //last one out resets the barrier
+      if (ss.calcBarrier.getNumberWaiting() == 0 && ss.calcBarrier.isBroken()) { ss.calcBarrier.reset(); } 
    }
-
-   public void start () {
+   
+  public void start () {
       //System.out.println("Starting " +  threadName);
       if (t == null) {
          t = new Thread(this, threadName);

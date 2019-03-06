@@ -9,6 +9,8 @@
 double startTime;
 double elapsedTime;
 
+static boolean euler = false;
+
 // camera-control variables
 boolean up_pressed = false; // up arrow
 boolean dn_pressed = false; // down arrow
@@ -68,8 +70,8 @@ static class ClothParams {
   
   static double userPullValue = 5000; //strength of force added by user pull on spring
   
-  static int springSystemHeight = 60; //the number of nodes on the tall side of the spring system
-  static int springSystemLength = 67; //the number of nodes on the long side of the spring system
+  static int springSystemHeight = 10; //the number of nodes on the tall side of the spring system
+  static int springSystemLength = 17; //the number of nodes on the long side of the spring system
   static FixedMethod fixedSide = FixedMethod.LEFT; //the side of the spring system that's fixed
 }
 
