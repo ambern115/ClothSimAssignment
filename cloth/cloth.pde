@@ -51,25 +51,25 @@ static class ClothParams {
   static float radius = 2; //radius of particle sphere
   static float mass = 1; //mass of particle
   
-  static float restLen = 6.7; //the resting length of each springs
+  static float restLen = 3.5; //the resting length of each springs
   static float breakLen = restLen * 1.6; //the length a spring must be for it to break
   static double k = 10000; //stiffness of the spring
   static double kd = 1000; //damping factor of spring motion
-  static double gravity = 500; //acceleration due to gravity
+  static double gravity = 250; //acceleration due to gravity
   
   static double airDensity = .0012; //the density of the air, for calculating drag
   static double cd = 0.00001; //the drag coefficient
   
   // three components of air velocity, for drag. Can't make this into a static PtVector
-  static double airVelX =   50000;
-  static double airVelY = - 5000;
-  static double airVelZ =   10000;//55000;
+  static double airVelX =  0; //50000;
+  static double airVelY = 0;//- 5000;
+  static double airVelZ = 0;//  10000;//55000;
   static double userAirVelAdd = 100; //how much velocity per frame the user can add to air direction
   
   static double userPullValue = 5000; //strength of force added by user pull on spring
   
-  static int springSystemHeight = 40; //the number of nodes on the tall side of the spring system
-  static int springSystemLength = 45; //the number of nodes on the long side of the spring system
+  static int springSystemHeight = 60; //the number of nodes on the tall side of the spring system
+  static int springSystemLength = 67; //the number of nodes on the long side of the spring system
   static FixedMethod fixedSide = FixedMethod.LEFT; //the side of the spring system that's fixed
 }
 
@@ -234,15 +234,12 @@ void addUserAirVel() {
 
 //displays all text that goes in the corner of the screen
 void displayHUD() {
+  textSize(14);
+  fill(255,255,255,255);
   text(("                 Number of Spring Nodes: " + ClothParams.springSystemHeight*ClothParams.springSystemLength +
           " (" + ClothParams.springSystemHeight + "x" + ClothParams.springSystemLength + ")" +
           "\n                  Wind Speed: " + airVel.toString() +
           "\n                  Framerate: " + frameRate), 4, -18);
-}
-
-void setupLights() {
-  ambientLight(240,240,240);
-  directionalLight(200,200,200,0,-1,0);
 }
 
 /**
@@ -313,13 +310,24 @@ void cylinder(float w, float h, float xPos, float yPos, float zPos, float r, flo
   popMatrix();
 }
 
+void setupLights() {
+  ambientLight(100,100,100);
+  directionalLight(70,70,70,0,.4,-1);
+  lightFalloff(1, 0, 0);
+  lightSpecular(0, 0, 0);
+  float sxPos = width/5+200;
+  float syPos = height-1;
+  float szPos = 100;
+  spotLight(255,255,255,sxPos,syPos,szPos,-.1,-.5,-.2,PI/15,75);
+}
+
 // function called every frame for rendering
 void draw() {
   elapsedTime = (millis() - startTime) / 1000.0;
   startTime = millis();
-  background(204,230,255);
-  lights();  
-  //setupLights();
+  background(128, 43, 0); //orange
+  //lights();
+  setupLights();
   translate_cam();
   noStroke();
   
@@ -332,15 +340,6 @@ void draw() {
     // increase vision distance
     perspective(PI/3.0, width/height, camz/10.0, camz*20.0); 
     rotate_cam();
-    
-    // draw text here so it's not affected by cam movement
-    textSize(14);
-    fill(0,0,0,255);
-    displayHUD();
-    translate(moveX,moveY,zoom);
-    rotateY(rotX);
-    rotateX(rotY);
-    endCamera();
   } else {
     beginCamera();
     float camz = (height/2.0) / tan(PI*30.0 / 180.0);
@@ -349,16 +348,14 @@ void draw() {
             0, 1, 0);
     // increase vision distance
     perspective(PI/3.0, width/height, camz/10.0, camz*20.0);
-    
-    // draw text here so it's not affected by cam movement
-    textSize(14);
-    fill(0,0,0,255);
-    displayHUD();
-    translate(moveX,moveY,zoom);
-    rotateY(rotX);
-    rotateX(rotY);
-    endCamera();  
   }
+  // draw text here so it's not affected by cam movement
+  displayHUD();
+  fill(100,100,100);
+  translate(moveX,moveY,zoom);
+  rotateY(rotX);
+  rotateX(rotY);
+  endCamera();  
   
   /*//check for forces being applied by user
   if (lf_pressed) {
@@ -393,14 +390,14 @@ void draw() {
     ss.run_single_thread(min((int) timesteps, 200), dt, userForce);
   } else { //when multithreading, the physics threads perform most physics calculations for us
   //ss.AddForceToBottomNodes(userForce);
-  if (!ClothParams.tearable) { ss.renderNodes(); }
+  if (!ClothParams.tearable) { ss.renderNodeTriangles(); }
   else { ss.renderNodeTriangles(); }
   //ss.renderNodesAsGrid();
   }
   
   // ground....
   beginShape();
-  fill(0,255,0);
+  fill(46,184,46);
   vertex(-width*10, height, 1000);
   vertex(width*11, height, 1000);
   vertex(width*11, height, -100000);
@@ -417,7 +414,7 @@ void draw() {
   endShape();*/
   
   //flagpole
-  cylinder(7, height, width/5, height, -100, 200, 200, 200, 30);  
+  cylinder(7, height, width/5, height, -100, 125, 125, 125, 30);  
   //right wall
   /*beginShape();
   fill(153,102,51);
