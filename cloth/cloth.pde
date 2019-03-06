@@ -10,15 +10,17 @@ double startTime;
 double elapsedTime;
 
 // camera-control variables
-boolean up_pressed = false;
-boolean dn_pressed = false;
-boolean lf_pressed = false;
-boolean rt_pressed = false;
-boolean w_pressed = false;
-boolean a_pressed = false;
-boolean s_pressed = false;
-boolean d_pressed = false;
-boolean mouse_lf_pressed = false;
+boolean up_pressed = false; // up arrow
+boolean dn_pressed = false; // down arrow
+boolean lf_pressed = false; // left arrow
+boolean rt_pressed = false; // right arrow
+boolean sh_pressed = false; // shift key
+boolean ctrl_pressed = false; // CTRL key
+boolean w_pressed = false; // W key
+boolean a_pressed = false; // A key
+boolean s_pressed = false; // S key
+boolean d_pressed = false; // D key
+boolean mouse_lf_pressed = false; // left mouse button
 float xStart, yStart;
 float rotXStart, rotYStart;
 float rotY, rotX;
@@ -30,6 +32,7 @@ PImage img;
 enum FixedMethod {
     LEFT,
     FLAG_LEFT,
+    FLAG_DISPLAYED,
     RIGHT,
     BOTTOM,
     TOP
@@ -48,9 +51,9 @@ static class ClothParams {
   static float radius = 2; //radius of particle sphere
   static float mass = 1; //mass of particle
   
-  static float restLen = 10; //the resting length of each springs
+  static float restLen = 6.7; //the resting length of each springs
   static float breakLen = restLen * 1.6; //the length a spring must be for it to break
-  static double k = 7000; //stiffness of the spring
+  static double k = 10000; //stiffness of the spring
   static double kd = 1000; //damping factor of spring motion
   static double gravity = 500; //acceleration due to gravity
   
@@ -58,15 +61,16 @@ static class ClothParams {
   static double cd = 0.00001; //the drag coefficient
   
   // three components of air velocity, for drag. Can't make this into a static PtVector
-  static double airVelX =  50000;
+  static double airVelX =   50000;
   static double airVelY = - 5000;
-  static double airVelZ =  10000;//55000;
+  static double airVelZ =   10000;//55000;
+  static double userAirVelAdd = 100; //how much velocity per frame the user can add to air direction
   
   static double userPullValue = 5000; //strength of force added by user pull on spring
   
-  static int springSystemHeight = 30; //the number of nodes on the tall side of the spring system
-  static int springSystemLength = 40; //the number of nodes on the long side of the spring system
-  static FixedMethod fixedSide = FixedMethod.FLAG_LEFT; //the side of the spring system that's fixed
+  static int springSystemHeight = 40; //the number of nodes on the tall side of the spring system
+  static int springSystemLength = 45; //the number of nodes on the long side of the spring system
+  static FixedMethod fixedSide = FixedMethod.LEFT; //the side of the spring system that's fixed
 }
 
 // standing velocity of the air as a PtVector
@@ -88,9 +92,9 @@ void setup() {
   surface.setTitle("Really Cool Flag!");
   //arguments: SprngSystem(double _k, double _kv, double grav, PtVector topPos, float floor_h)
   ss = new SpringSystem(ClothParams.springSystemHeight, ClothParams.springSystemLength, 
-                        ClothParams.fixedSide, new PtVector(width/3, 000, -20), airVel);
+                        ClothParams.fixedSide, new PtVector(width/5, 0, -100), airVel);
   //print(ss.toString());
-  img = loadImage("sexybrian.jpg");
+  img = loadImage("transpride.png");
   textureMode(NORMAL);
   
   if (ClothParams.multithread) {
@@ -116,6 +120,7 @@ void keyPressed() {
   if (keyCode == ENTER) {
     sim_started = !sim_started;
   }
+  
   if (keyCode == UP) {
     up_pressed = true;
   } else if (keyCode == DOWN) {
@@ -124,6 +129,10 @@ void keyPressed() {
     lf_pressed = true;
   } else if (keyCode == RIGHT) {
     rt_pressed = true;
+  } else if (keyCode == SHIFT) {
+     sh_pressed = true;
+  } else if (keyCode == CONTROL) {
+    ctrl_pressed = true;
   } else if (keyCode == 87) { //W
     w_pressed = true;
   } else if (keyCode == 65) { //A
@@ -144,6 +153,10 @@ void keyReleased() {
     lf_pressed = false;
   } else if (keyCode == RIGHT) {
     rt_pressed = false;
+  } else if (keyCode == SHIFT) {
+     sh_pressed = false;
+  } else if (keyCode == CONTROL) {
+    ctrl_pressed = false;
   } else if (keyCode == 87) { //W
     w_pressed = false;
   } else if (keyCode == 65) { //A
@@ -196,16 +209,115 @@ void translate_cam() {
   }
 }
 
+//adds air velocity to the system from user input
+void addUserAirVel() {
+  if (lf_pressed) { //wind left
+    airVel.x -= ClothParams.userAirVelAdd;
+    //println("airVel changed to " + airVel.toString());
+  }
+  if (rt_pressed) { //wind right
+    airVel.x += ClothParams.userAirVelAdd;
+  }
+  if (up_pressed) { //wind up
+    airVel.y -= ClothParams.userAirVelAdd;
+  }
+  if (dn_pressed) { //wind down
+    airVel.y += ClothParams.userAirVelAdd;
+  }
+  if (sh_pressed) { //wind away from screen
+    airVel.z -= ClothParams.userAirVelAdd;
+  }
+  if (ctrl_pressed) { //wind toward screen
+    airVel.z += ClothParams.userAirVelAdd;
+  }
+}
+
+//displays all text that goes in the corner of the screen
+void displayHUD() {
+  text(("                 Number of Spring Nodes: " + ClothParams.springSystemHeight*ClothParams.springSystemLength +
+          " (" + ClothParams.springSystemHeight + "x" + ClothParams.springSystemLength + ")" +
+          "\n                  Wind Speed: " + airVel.toString() +
+          "\n                  Framerate: " + frameRate), 4, -18);
+}
+
 void setupLights() {
   ambientLight(240,240,240);
   directionalLight(200,200,200,0,-1,0);
+}
+
+/**
+cylinder taken from http://wiki.processing.org/index.php/Cylinder
+@author matt ditton
+Modified by Michael Biggers to draw at a specified location with a specific color
+*/
+ 
+void cylinder(float w, float h, float xPos, float yPos, float zPos, float r, float g, float b, int sides)
+{
+  pushMatrix();
+  
+  fill(r,g,b);
+  translate(xPos, yPos - h/2, zPos);
+  
+  float angle;
+  float[] x = new float[sides+1];
+  float[] z = new float[sides+1];
+  
+  float[] x2 = new float[sides+1];
+  float[] z2 = new float[sides+1];
+ 
+  //get the x and z position on a circle for all the sides
+  for(int i=0; i < x.length; i++){
+    angle = TWO_PI / (sides) * i;
+    x[i] = sin(angle) * w;
+    z[i] = cos(angle) * w;
+  }
+  
+  for(int i=0; i < x.length; i++){
+    angle = TWO_PI / (sides) * i;
+    x2[i] = sin(angle) * w;
+    z2[i] = cos(angle) * w;
+  }
+ 
+  //draw the bottom of the cylinder
+  beginShape(TRIANGLE_FAN);
+ 
+  vertex(0,   -h/2,    0);
+ 
+  for(int i=0; i < x.length; i++){
+    vertex(x[i], -h/2, z[i]);
+  }
+ 
+  endShape();
+ 
+  //draw the center of the cylinder
+  beginShape(QUAD_STRIP); 
+ 
+  for(int i=0; i < x.length; i++){
+    vertex(x[i], -h/2, z[i]);
+    vertex(x2[i], h/2, z2[i]);
+  }
+ 
+  endShape();
+ 
+  //draw the top of the cylinder
+  beginShape(TRIANGLE_FAN); 
+ 
+  vertex(0,   h/2,    0);
+ 
+  for(int i=0; i < x.length; i++){
+    vertex(x2[i], h/2, z2[i]);
+  }
+ 
+  endShape();
+  
+  popMatrix();
 }
 
 // function called every frame for rendering
 void draw() {
   elapsedTime = (millis() - startTime) / 1000.0;
   startTime = millis();
-  background(220,220,240);
+  background(204,230,255);
   lights();  
   //setupLights();
   translate_cam();
@@ -224,7 +336,7 @@ void draw() {
     // draw text here so it's not affected by cam movement
     textSize(14);
     fill(0,0,0,255);
-    text(("                 frame rate: " + frameRate), 4, -18);
+    displayHUD();
     translate(moveX,moveY,zoom);
     rotateY(rotX);
     rotateX(rotY);
@@ -241,16 +353,14 @@ void draw() {
     // draw text here so it's not affected by cam movement
     textSize(14);
     fill(0,0,0,255);
-    text(("                 Number of Spring Nodes: " + ClothParams.springSystemHeight*ClothParams.springSystemLength +
-          " (" + ClothParams.springSystemHeight + "x" + ClothParams.springSystemLength + ")" +
-          "\n                  Framerate: " + frameRate), 4, -18);
+    displayHUD();
     translate(moveX,moveY,zoom);
     rotateY(rotX);
     rotateX(rotY);
     endCamera();  
   }
   
-  //check for forces being applied by user
+  /*//check for forces being applied by user
   if (lf_pressed) {
     userForce.addVec(new PtVector(-ClothParams.userPullValue,0,0));
   }
@@ -267,8 +377,10 @@ void draw() {
   if (!lf_pressed && !dn_pressed && !rt_pressed && !up_pressed) {
     //println("userForce resetting");
     userForce = new PtVector(0,0,0);
-  }
+  }*/
   //else { println("lf_pressed is " + lf_pressed + ", dn_pressed is " + dn_pressed + ", rt_pressed is " + rt_pressed + ", up_pressed is " + up_pressed); }
+  
+  addUserAirVel();
   
   if (!ClothParams.multithread) {
     double timesteps = elapsedTime / ClothParams.goalDT;
@@ -280,30 +392,32 @@ void draw() {
     
     ss.run_single_thread(min((int) timesteps, 200), dt, userForce);
   } else { //when multithreading, the physics threads perform most physics calculations for us
-  ss.AddForceToBottomNodes(userForce);
-  //ss.renderNodes();
+  //ss.AddForceToBottomNodes(userForce);
+  if (!ClothParams.tearable) { ss.renderNodes(); }
+  else { ss.renderNodeTriangles(); }
   //ss.renderNodesAsGrid();
-  ss.renderNodeTriangles();
   }
   
   // ground....
   beginShape();
-  fill(255,0,0);
-  vertex(0, height, 20);
-  vertex(width, height, 20);
-  vertex(width, height, -1000);
-  vertex(0, height, -1000);
+  fill(0,255,0);
+  vertex(-width*10, height, 1000);
+  vertex(width*11, height, 1000);
+  vertex(width*11, height, -100000);
+  vertex(-width*10, height, -100000);
   endShape();
   
   //left wall
-  beginShape();
+  /*beginShape();
   fill(153,102,51);
   vertex(0, height, 20);
   vertex(0, height, -1000);
   vertex(0, 0, -1000);
   vertex(0, 0, 20);
-  endShape();
+  endShape();*/
   
+  //flagpole
+  cylinder(7, height, width/5, height, -100, 200, 200, 200, 30);  
   //right wall
   /*beginShape();
   fill(153,102,51);

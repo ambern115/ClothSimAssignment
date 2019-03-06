@@ -52,7 +52,8 @@ class SpringSystem {
               (fixMeth == FixedMethod.LEFT && col == 0) ||
               (fixMeth == FixedMethod.BOTTOM && row == systemHeight - 1) ||
               (fixMeth == FixedMethod.RIGHT && col == systemLength - 1) || 
-              (fixMeth == FixedMethod.FLAG_LEFT && col == 0 && (row < systemHeight * .2 || row > systemHeight * .8))) {
+              (fixMeth == FixedMethod.FLAG_LEFT && col == 0 && (row < systemHeight * .2 || row > systemHeight * .8)) ||
+              (fixMeth == FixedMethod.FLAG_DISPLAYED && row == 0 && (col < systemLength * .1 || col > systemLength * .9))) {
                 n = new SpringNode(currNodePos, row, col, airVel, true);
               } else { n = new SpringNode(currNodePos, row, col, airVel, false); }
           
@@ -122,37 +123,27 @@ class SpringSystem {
   
   // Display all spring nodes to the screen
   void renderNodes() {
-    //stroke(5);
     noStroke();
-    fill(0,0,0);
+    fill(255,255,255);
     beginShape(TRIANGLE_STRIP);
-    //texture(img);
-    fill(255,0,0);
+    texture(img);
     
     for (int row = 0; row < systemHeight; row++) {
       for (int col = 0; col < systemLength; col++) {
-          if (row+1 < systemLength) {
+          if (row+1 < systemHeight) {
             // if row odd! consider 0 even
             if (row % 2 != 0) {
               normal(0, 0, -1);
-              synchronized (nodes[row][col].pos) {
                 vertex((float) nodes[row][col].pos.x, (float) nodes[row][col].pos.y, 
                        (float) nodes[row][col].pos.z, (float) col/systemLength, (float) row/(systemHeight-1));
-              }
-              synchronized (nodes[row+1][col].pos) {
                 vertex((float) nodes[row+1][col].pos.x, (float) nodes[row+1][col].pos.y, 
                        (float) nodes[row+1][col].pos.z, (float) col/systemLength, (float) (row+1)/(systemHeight-1));
-              }
           } else {
               normal(0, 0, 1);
-              synchronized (nodes[row][systemLength-col-1].pos) {
                 vertex((float) nodes[row][systemLength-col-1].pos.x, (float) nodes[row][systemLength-col-1].pos.y, 
                        (float) nodes[row][systemLength-col-1].pos.z, (float) (systemLength-col-1)/systemLength, (float) row/(systemHeight-1));
-              }
-              synchronized (nodes[row+1][systemLength-col-1].pos) {
                 vertex((float) nodes[row+1][systemLength-col-1].pos.x, (float) nodes[row+1][systemLength-col-1].pos.y, 
                        (float) nodes[row+1][systemLength-col-1].pos.z, (float) (systemLength-col-1)/systemLength, (float) (row+1)/(systemHeight-1));
-              }
             }
         }
       }
@@ -163,7 +154,7 @@ class SpringSystem {
   // Display all spring nodes to the screen, via triangles between them
   void renderNodeTriangles() {
     noStroke();
-    fill(0,0,0);
+    //fill(0,0,0);
     texture(img);
     //fill(255,0,0);
     

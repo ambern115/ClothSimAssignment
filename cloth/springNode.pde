@@ -103,6 +103,7 @@ class SpringNode {
   // sets the physics for this node for the next timestep
   //uses spring forces between it and all neighbor nodes to calculate this
   void update() {
+    //println("as a node, my airvel rn is: " + airVel.toString());
     synchronized(accForces) { accForces.addVec(userForce); } //force from user input
     for (int nRow = 0; nRow < neighborsLen; nRow++) {
       for (int nCol = 0; nCol < neighborsLen; nCol++) {
@@ -143,7 +144,9 @@ class SpringNode {
         SpringNode n3 = this;
         
         PtVector dragVel = n1.vel.getAddVectors(n2.vel).getAddVectors(n3.vel).divideByConstant(3); //(v1 + v2 + v3) / 3
+        //println("in drag, airVel is " + airVel + " and dragVel is " + dragVel.toString());
         dragVel.subtractVector(airVel); //v = ((v1 + v2 + v3) / 3) - v_air
+        //println("dragVel after subtraction of airVel is " + dragVel.toString());
         
         // n* = (r2 - r1) x (r3 - r1)
         PtVector n_star = n2.pos.getSubtractedVector(n1.pos).getCross(n3.pos.getSubtractedVector(n1.pos));
