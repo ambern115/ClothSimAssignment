@@ -3,6 +3,9 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.CyclicBarrier;
+import java.math.BigDecimal;
+import java.math.MathContext;
+import java.math.RoundingMode;
 
 class SpringSystem {
   SpringNode[][] nodes; // the nodes, connected by springs, that form the simulation
@@ -19,6 +22,30 @@ class SpringSystem {
   
   //a barrier lock used by the physics threads to ensure concurrency
   final CyclicBarrier calcBarrier = new CyclicBarrier(ClothParams.numPhysThreads);
+  long startTime = -1;
+  long totalFrameRates = 0;
+  BigDecimal timeElapsed;
+  float currPhysFramerate = 0;
+  float avgFramerate;
+  
+  void ping() { //used by physics threads to get a framerate
+    //println("getting pinged");
+    if (startTime == -1) { startTime = System.nanoTime(); }
+    else { //use a special large decimal class to deal with nanoseconds and calculate physics updates framerate
+      totalFrameRates++;
+      long thisTime = System.nanoTime();
+      timeElapsed = new BigDecimal(thisTime - startTime); //timeElapsed is in nanoseconds for better precision, so must be converted later
+      
+      // framerate rn = 1 / (timeElapsed / 1000000000)
+      //println("timeElapsed becomes " + timeElapsed.toString());
+      currPhysFramerate = BigDecimal.ONE.divide(timeElapsed.divide(new BigDecimal(1000000000L)), 1, RoundingMode.HALF_UP).floatValue();
+      //println("bd becomes " + bd.toString());
+      //println("time elapsed in nanoseconds is " + timeElapsed.toString() + ", current physics framerate is " + currPhysFramerate);
+      avgFramerate += ((currPhysFramerate - avgFramerate) / totalFrameRates);
+      //println("average running framerate is " + avgFramerate);
+      startTime = thisTime;
+    }
+  }
   
   //default constructor
   SpringSystem() {

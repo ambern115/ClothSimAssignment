@@ -1,5 +1,6 @@
 class PhysicsUpdateThread implements Runnable {
    private Thread t;
+   private int tnum;
    private String threadName = "Physics Update Thread";
    SpringSystem system;
    int startRow = 0; //the row we start doing calculations on
@@ -8,10 +9,12 @@ class PhysicsUpdateThread implements Runnable {
    int numPhysThreads = ClothParams.numPhysThreads;
    double dt = ClothParams.goalDT;
 
-   PhysicsUpdateThread(SpringSystem ss, int sr, int er) {
+   PhysicsUpdateThread(SpringSystem ss, int sr, int er, int tn) {
       system = ss;
       startRow = sr;
       endRow = er;
+      tnum = tn;
+      threadName = "Physics Update Thread " + Integer.toString(tnum);
    }
    
    //runs as long as the thread hasn't been shutdown, and executes as long as it's active
@@ -35,8 +38,6 @@ class PhysicsUpdateThread implements Runnable {
      
      try { ss.calcBarrier.await(); } //wait for all threads to catch up to this point
      catch (Exception e) { println(e + " at barrier following updates by " + startRow); }
-     //last one out resets the barrier
-     if (ss.calcBarrier.getNumberWaiting() == 0 && ss.calcBarrier.isBroken()) { ss.calcBarrier.reset(); }
      
      //next, check collisions and integrate forces
      for (int row = startRow; row < endRow; row++) {
@@ -48,8 +49,8 @@ class PhysicsUpdateThread implements Runnable {
      
      try { ss.calcBarrier.await(); } //wait for all threads to catch up to this point
      catch (Exception e) { println(e + " at barrier following integrations by " + startRow); }
-     //last one out resets the barrier
-     if (ss.calcBarrier.getNumberWaiting() == 0 && ss.calcBarrier.isBroken()) { ss.calcBarrier.reset(); } 
+     //last one out pings the spring system
+     if (tnum == 0) { ss.ping(); } 
    }
 
    public void start () {

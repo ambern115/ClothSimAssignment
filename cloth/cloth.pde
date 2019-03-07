@@ -28,6 +28,7 @@ float zoom;
 float moveX, moveY;
 
 PImage img;
+PImage grass;
 
 enum FixedMethod {
     LEFT,
@@ -51,7 +52,7 @@ static class ClothParams {
   static float radius = 2; //radius of particle sphere
   static float mass = 1; //mass of particle
   
-  static float restLen = 3.5; //the resting length of each springs
+  static float restLen = 12; //the resting length of each springs
   static float breakLen = restLen * 1.6; //the length a spring must be for it to break
   static double k = 10000; //stiffness of the spring
   static double kd = 1000; //damping factor of spring motion
@@ -61,16 +62,16 @@ static class ClothParams {
   static double cd = 0.00001; //the drag coefficient
   
   // three components of air velocity, for drag. Can't make this into a static PtVector
-  static double airVelX =  0; //50000;
-  static double airVelY = 0;//- 5000;
-  static double airVelZ = 0;//  10000;//55000;
+  static double airVelX =  1; //50000;
+  static double airVelY = 1;//- 5000;
+  static double airVelZ = 1;//  10000;//55000;
   static double userAirVelAdd = 100; //how much velocity per frame the user can add to air direction
   
   static double userPullValue = 5000; //strength of force added by user pull on spring
   
-  static int springSystemHeight = 60; //the number of nodes on the tall side of the spring system
-  static int springSystemLength = 67; //the number of nodes on the long side of the spring system
-  static FixedMethod fixedSide = FixedMethod.LEFT; //the side of the spring system that's fixed
+  static int springSystemHeight = 26; //the number of nodes on the tall side of the spring system
+  static int springSystemLength = 35; //the number of nodes on the long side of the spring system
+  static FixedMethod fixedSide = FixedMethod.FLAG_LEFT; //the side of the spring system that's fixed
 }
 
 // standing velocity of the air as a PtVector
@@ -92,9 +93,10 @@ void setup() {
   surface.setTitle("Really Cool Flag!");
   //arguments: SprngSystem(double _k, double _kv, double grav, PtVector topPos, float floor_h)
   ss = new SpringSystem(ClothParams.springSystemHeight, ClothParams.springSystemLength, 
-                        ClothParams.fixedSide, new PtVector(width/5, 0, -100), airVel);
+                        ClothParams.fixedSide, new PtVector(width/10, 0, -100), airVel);
   //print(ss.toString());
   img = loadImage("transpride.png");
+  grass = loadImage("grass.jpg");
   textureMode(NORMAL);
   
   if (ClothParams.multithread) {
@@ -107,7 +109,7 @@ void setup() {
     for (int i = 0; i < ClothParams.numPhysThreads; i++) {
       endingRow = startingRow + rowIncrement;
       if (extraRows > 0) { endingRow++; extraRows--; }
-      physThreads[i] = new PhysicsUpdateThread(ss, startingRow, endingRow);
+      physThreads[i] = new PhysicsUpdateThread(ss, startingRow, endingRow, i);
       physThreads[i].start();
       startingRow = endingRow;
     }
@@ -239,7 +241,8 @@ void displayHUD() {
   text(("                 Number of Spring Nodes: " + ClothParams.springSystemHeight*ClothParams.springSystemLength +
           " (" + ClothParams.springSystemHeight + "x" + ClothParams.springSystemLength + ")" +
           "\n                  Wind Speed: " + airVel.toString() +
-          "\n                  Framerate: " + frameRate), 4, -18);
+          "\n                  Main Thread Framerate: " + frameRate +
+          "\n                  Physics Updates per Frame: " + ss.currPhysFramerate), 4, -18);
 }
 
 /**
@@ -397,12 +400,15 @@ void draw() {
   
   // ground....
   beginShape();
-  fill(46,184,46);
-  vertex(-width*10, height, 1000);
-  vertex(width*11, height, 1000);
-  vertex(width*11, height, -100000);
-  vertex(-width*10, height, -100000);
+  fill(255,255,255);
+  textureWrap(REPEAT);
+  texture(grass);
+  vertex(-width*10, height*2, 1000, 0, 0);
+  vertex(width*11, height*2, 1000, 1, 0);
+  vertex(width*11, height*2, -100000, 1, 1);
+  vertex(-width*10, height*2, -100000, 0, 1);
   endShape();
+  textureWrap(CLAMP);
   
   //left wall
   /*beginShape();
@@ -414,7 +420,7 @@ void draw() {
   endShape();*/
   
   //flagpole
-  cylinder(7, height, width/5, height, -100, 125, 125, 125, 30);  
+  cylinder(11, height*2, width/10, height*2, -100, 125, 125, 125, 30);  
   //right wall
   /*beginShape();
   fill(153,102,51);
