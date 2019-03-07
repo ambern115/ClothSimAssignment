@@ -43,7 +43,7 @@ enum FixedMethod {
 // static class accessible from anywhere that holds our tuning 
 // parameters for the simulation
 static class ClothParams {
-  static double goalDT = 0.0002; //the fraction of a second we simulate with each timestep
+  static double goalDT = 0.0003; //the fraction of a second we simulate with each timestep
   static final boolean multithread = true; //do we want to turn on multithreading?
   static final boolean tearable = false; //cloth can be torn if it stretches too much
   static final short numPhysThreads = 12; //the number of physics threads running in the background
@@ -70,15 +70,15 @@ static class ClothParams {
   
   static double userPullValue = 5000; //strength of force added by user pull on spring
   
-  static int springSystemHeight = 10; //the number of nodes on the tall side of the spring system
-  static int springSystemLength = 17; //the number of nodes on the long side of the spring system
+  static int springSystemHeight = 30; //the number of nodes on the tall side of the spring system
+  static int springSystemLength = 37; //the number of nodes on the long side of the spring system
   static FixedMethod fixedSide = FixedMethod.LEFT; //the side of the spring system that's fixed
 }
 
 // standing velocity of the air as a PtVector
 PtVector airVel = new PtVector(ClothParams.airVelX, ClothParams.airVelY, ClothParams.airVelZ);
 
-PtVector userForce = new PtVector(0,0,0); //vector storing user pulls on the string
+PtVector userForce = new PtVector(1,1,1); //vector storing user pulls on the string
 
 SpringSystem ss;
 

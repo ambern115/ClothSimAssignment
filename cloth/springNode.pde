@@ -7,7 +7,7 @@ class SpringNode {
   float collisionZDamp = 0.6;
   
   PtVector overallForce = new PtVector(0,0,0);
-  PtVector userForce = new PtVector(0,0,0);
+  PtVector userForce = new PtVector(1,1,1);
   
   float mass;
   float radius;
@@ -184,8 +184,9 @@ class SpringNode {
     if (!fixed) { //only integrate if this node is allowed to move
       PtVector acc = accForces.divideByConstant(mass); //a = F/m
       acc.addVec(new PtVector(0,gravity,0)); //a += G
-      vel.addVec(acc.getMultByCon(dt)); //v += a*dt
       synchronized (pos) { pos.addVec(vel.getMultByCon(dt)); } //p += v*dt
+      vel.addVec(acc.getMultByCon(dt)); //v += a*dt
+      
     }
     //check for breakages in neighbor springs
     if (ClothParams.tearable) {
@@ -204,7 +205,7 @@ class SpringNode {
       }
     }
     accForces = new PtVector(0,0,0);
-    userForce = new PtVector(0,0,0);
+    userForce = new PtVector(1,1,1);
   }
   
   // integrate half eulerian
@@ -262,6 +263,6 @@ class SpringNode {
       }
     }
     accForces = new PtVector(0,0,0);
-    userForce = new PtVector(0,0,0);
+    userForce = new PtVector(1,1,1);
   }
 }
