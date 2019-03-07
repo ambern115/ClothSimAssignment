@@ -44,11 +44,12 @@ enum FixedMethod {
 // parameters for the simulation
 static class ClothParams {
   //for eulerian: .0013 is the limit dt. for midpoint: .0015 is the limit dt.
-  static double goalDT = 0.0013; //the fraction of a second we simulate with each timestep
+  static double goalDT = 0.0012; //the fraction of a second we simulate with each timestep
   static boolean eulerian = false; //do we want to turn on eulerian integration? or midpoint integration?
   static boolean semiImplicit = true; // do we want to use semi-implicit integration instead?
   static final boolean multithread = true; //do we want to turn on multithreading?
-  static final boolean tearable = true; //cloth can be torn if it stretches too much
+  static final boolean useDrag = false; //do we want our cloth to react to air drag?
+  static final boolean tearable = false; //cloth can be torn if it stretches too much
   static final short numPhysThreads = 12; //the number of physics threads running in the background
   static boolean useDiags = false; //Do we want to use diagonal springs for extra stability?
   
@@ -60,7 +61,7 @@ static class ClothParams {
   static float breakLen = restLen * 1.1; //the length a spring must be for it to break
   static double k = 10000; //stiffness of the spring
   static double kd = 200; //damping factor of spring motion
-  static double gravity = 00; //acceleration due to gravity
+  static double gravity = 60; //acceleration due to gravity
   
   static double airDensity = .0012; //the density of the air, for calculating drag
   static double cd = 0.00001; //the drag coefficient

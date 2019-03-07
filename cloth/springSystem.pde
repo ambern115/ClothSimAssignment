@@ -136,7 +136,7 @@ class SpringSystem {
       for (int row = 0; row < systemHeight; row++) {
         for (int col = 0; col < systemLength; col++) {
           // only update every other node in a row
-          nodes[row][col].addDrag();
+          if (ClothParams.useDrag) { nodes[row][col].addDrag(); }
           if (row % 2 == col % 2) { nodes[row][col].update(); }
         }
       }
@@ -153,7 +153,7 @@ class SpringSystem {
       for (int row = 0; row < systemHeight; row++) {
         for (int col = 0; col < systemLength; col++) {
           // only update every other node in a row
-          nodes[row][col].addDrag();
+          if (ClothParams.useDrag) { nodes[row][col].addDrag(); }
           if (row % 2 == col % 2) { nodes[row][col].update(); }
         }
       }
@@ -170,7 +170,7 @@ class SpringSystem {
       for (int row = 0; row < systemHeight; row++) {
         for (int col = 0; col < systemLength; col++) {
           // only update every other node in row
-          nodes[row][col].addDrag();
+          if (ClothParams.useDrag) { nodes[row][col].addDrag(); }
           if (row % 2 == col % 2) { nodes[row][col].update(); }
         }
       }
@@ -191,7 +191,7 @@ class SpringSystem {
     noStroke();
     fill(255,255,255);
     beginShape(TRIANGLE_STRIP);
-    texture(murica);
+    texture(trans);
     
     for (int row = 0; row < systemHeight; row++) {
       for (int col = 0; col < systemLength; col++) {
@@ -232,7 +232,7 @@ class SpringSystem {
           nVertex2 = nodes[row][col];
           nVertex3 = nodes[row+1][col];
           beginShape(TRIANGLE);
-          texture(murica);
+          texture(trans);
           vertex((float) nVertex1.pos.x, (float) nVertex1.pos.y, (float) nVertex1.pos.z, 
                  (float) (col-1)/(systemLength-1), (float) (row+1)/(systemHeight-1));
           vertex((float) nVertex2.pos.x, (float) nVertex2.pos.y, (float) nVertex2.pos.z, 
@@ -248,7 +248,7 @@ class SpringSystem {
           nVertex2 = nodes[row+1][col];
           nVertex3 = nodes[row][col+1];
           beginShape(TRIANGLE);
-          texture(murica);
+          texture(trans);
           vertex((float) nVertex1.pos.x, (float) nVertex1.pos.y, (float) nVertex1.pos.z, 
                  (float) col/(systemLength-1), (float) row/(systemHeight-1));
           vertex((float) nVertex2.pos.x, (float) nVertex2.pos.y, (float) nVertex2.pos.z, 

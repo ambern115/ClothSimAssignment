@@ -33,7 +33,7 @@ class PhysicsUpdateThread implements Runnable {
        for (int row = startRow; row < endRow; row++) {
          for (int col = 0; col < ss.nodes[0].length; col++) {
            // only update every other node in a row
-           ss.nodes[row][col].addDrag();
+           if (ClothParams.useDrag) { ss.nodes[row][col].addDrag(); }
            if (row % 2 == col % 2) { ss.nodes[row][col].update(); }
          }
        }
@@ -54,7 +54,7 @@ class PhysicsUpdateThread implements Runnable {
        for (int row = startRow; row < endRow; row++) {
          for (int col = 0; col < ss.nodes[0].length; col++) {
            // only update every other node in a row
-           ss.nodes[row][col].addDrag();
+           if (ClothParams.useDrag) { ss.nodes[row][col].addDrag(); }
            if (row % 2 == col % 2) { ss.nodes[row][col].update(); }
          }
        }
@@ -77,7 +77,7 @@ class PhysicsUpdateThread implements Runnable {
        for (int row = startRow; row < endRow; row++) {
          for (int col = 0; col < ss.nodes[0].length; col++) {
            // only update every other node in a row
-           ss.nodes[row][col].addDrag();
+           if (ClothParams.useDrag) { ss.nodes[row][col].addDrag(); }
            if (row % 2 == col % 2) { ss.nodes[row][col].update(); }
          }
        }
