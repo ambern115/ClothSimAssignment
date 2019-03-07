@@ -132,20 +132,58 @@ class SpringSystem {
    
   //performs single-thread physics calculations on each node for timestep dt.
   void update(double dt) {
-    for (int row = 0; row < systemHeight; row++) {
-      for (int col = 0; col < systemLength; col++) {
-        // only update every other node in a row
-        nodes[row][col].addDrag();
-        if (row % 2 == col % 2) { nodes[row][col].update(); }
+    if (ClothParams.eulerian || ClothParams.semiImplicit) {
+      for (int row = 0; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          // only update every other node in a row
+          nodes[row][col].addDrag();
+          if (row % 2 == col % 2) { nodes[row][col].update(); }
+        }
+      }
+      //next, check collisions and integrate forces
+      for (int row = 0; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          //nodes[row][col].checkCollisions();
+          if (ClothParams.eulerian) { nodes[row][col].integrate(dt); }
+          else { nodes[row][col].integrateSemiImplicit(dt); }
+        }
+      }
+    } else {
+      // first, update all nodes' forces based on their neighbors
+      for (int row = 0; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          // only update every other node in a row
+          nodes[row][col].addDrag();
+          if (row % 2 == col % 2) { nodes[row][col].update(); }
+        }
+      }
+      
+      // second, set all nodes to have HALF velocity and HALF position with eurlerian integration..
+      for (int row = 1; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          //nodes[row][col].checkCollisions();      
+          nodes[row][col].integrateHalf(dt);
+        }
+      }
+      
+      // third recompute all nodes' forces based on their neighbors
+      for (int row = 0; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          // only update every other node in row
+          nodes[row][col].addDrag();
+          if (row % 2 == col % 2) { nodes[row][col].update(); }
+        }
+      }
+      
+      // fourth, use the forces from the halfway point at the original positions/velocities with the full timestep
+      for (int row = 1; row < systemHeight; row++) {
+        for (int col = 0; col < systemLength; col++) {
+          //nodes[row][col].checkCollisions();
+          nodes[row][col].integrateFull(dt);
+        }
       }
     }
-    //next, check collisions and integrate forces
-    for (int row = 0; row < systemHeight; row++) {
-      for (int col = 0; col < systemLength; col++) {
-        nodes[row][col].checkCollisions();
-        nodes[row][col].integrate(dt);
-      }
-    }
+    ping();
   }
   
   // Display all spring nodes to the screen
@@ -153,7 +191,7 @@ class SpringSystem {
     noStroke();
     fill(255,255,255);
     beginShape(TRIANGLE_STRIP);
-    texture(img);
+    texture(murica);
     
     for (int row = 0; row < systemHeight; row++) {
       for (int col = 0; col < systemLength; col++) {
@@ -181,9 +219,6 @@ class SpringSystem {
   // Display all spring nodes to the screen, via triangles between them
   void renderNodeTriangles() {
     noStroke();
-    //fill(0,0,0);
-    texture(img);
-    //fill(255,0,0);
     
     for (int row = 0; row < systemHeight - 1; row++) {
       for (int col = 0; col < systemLength; col++) {
@@ -197,7 +232,7 @@ class SpringSystem {
           nVertex2 = nodes[row][col];
           nVertex3 = nodes[row+1][col];
           beginShape(TRIANGLE);
-          texture(img);
+          texture(murica);
           vertex((float) nVertex1.pos.x, (float) nVertex1.pos.y, (float) nVertex1.pos.z, 
                  (float) (col-1)/(systemLength-1), (float) (row+1)/(systemHeight-1));
           vertex((float) nVertex2.pos.x, (float) nVertex2.pos.y, (float) nVertex2.pos.z, 
@@ -213,7 +248,7 @@ class SpringSystem {
           nVertex2 = nodes[row+1][col];
           nVertex3 = nodes[row][col+1];
           beginShape(TRIANGLE);
-          texture(img);
+          texture(murica);
           vertex((float) nVertex1.pos.x, (float) nVertex1.pos.y, (float) nVertex1.pos.z, 
                  (float) col/(systemLength-1), (float) row/(systemHeight-1));
           vertex((float) nVertex2.pos.x, (float) nVertex2.pos.y, (float) nVertex2.pos.z, 
@@ -269,6 +304,6 @@ class SpringSystem {
       AddForceToBottomNodes(bottomForce);
       update(dt);
     }
-    renderNodes();
+    renderNodeTriangles();
   }
 }

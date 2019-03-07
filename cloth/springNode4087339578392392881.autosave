@@ -7,7 +7,7 @@ class SpringNode {
   float collisionZDamp = 0.6;
   
   PtVector overallForce = new PtVector(0,0,0);
-  PtVector userForce = new PtVector(1,1,1);
+  PtVector userForce = new PtVector(0,0,0);
   
   float mass;
   float radius;
@@ -21,8 +21,6 @@ class SpringNode {
   
   PtVector vel; // velocity
   PtVector pos; //position of the node
-  PtVector og_vel; // original velocity
-  PtVector og_pos; // original position
   
   int row; //the row of this particle in the node list
   int col; //the column of this particle in the node list
@@ -124,7 +122,6 @@ class SpringNode {
           PtVector velDiff = vel.getSubtractedVector(neighbor.vel); //v_diff = v1 - v2
           // compute damping force along this spring's axis
           double dampF = kd * velDiff.dotVec(e); //f_d = -k_d * dot(v_diff, e)
-          //if (row == 6 && col == 10) { println("in this node, stringF is " + stringF + ", and dampF is " + dampF); }
           
           PtVector overallForce = e.getMultByCon(stringF - dampF); //f = (f_s - f_d) * e
           // push this side of the spring, and pull the other side
@@ -185,39 +182,8 @@ class SpringNode {
     if (!fixed) { //only integrate if this node is allowed to move
       PtVector acc = accForces.divideByConstant(mass); //a = F/m
       acc.addVec(new PtVector(0,gravity,0)); //a += G
-      synchronized (pos) { pos.addVec(vel.getMultByCon(dt)); } //p += v*dt
-      vel.addVec(acc.getMultByCon(dt)); //v += a*dt
-      
-    }
-    //check for breakages in neighbor springs
-    if (ClothParams.tearable) {
-      for (int row = 0; row < neighbors.length; row++) {
-        for (int col = 0; col < neighbors.length; col++) {
-          //if this is a valid spring connection and the length of the spring is over breakLen
-          if (neighbors[row][col] != null && (row != 1 || col != 1) && 
-             (calcDiags == true || abs(row - col) % 2 != 0) && 
-             Math.abs(pos.getLen() - neighbors[row][col].pos.getLen()) >= ClothParams.breakLen) {
-             //println("breaking a node at pos " + this.toString() + ", connects to node at pos " + neighbors[row][col].toString()); //<>//
-             SpringNode thisInNeighbor = neighbors[row][col].neighbors[1+(1 - row)][1+(1 - col)];
-             if (thisInNeighbor != null) { synchronized (thisInNeighbor) { thisInNeighbor = null; } }
-             if (neighbors[row][col] != null) { synchronized(neighbors[row][col]) { neighbors[row][col] = null; } }
-           }
-        }
-      }
-    }
-    accForces = new PtVector(0,0,0);
-    userForce = new PtVector(1,1,1);
-  }
-  
-  //add accumulated forces to acceleration, and trickle integration down
-  //currently done via Eulerian integration
-  void integrateSemiImplicit(double dt) {
-    if (!fixed) { //only integrate if this node is allowed to move
-      PtVector acc = accForces.divideByConstant(mass); //a = F/m
-      acc.addVec(new PtVector(0,gravity,0)); //a += G
       vel.addVec(acc.getMultByCon(dt)); //v += a*dt
       synchronized (pos) { pos.addVec(vel.getMultByCon(dt)); } //p += v*dt
-      
     }
     //check for breakages in neighbor springs
     if (ClothParams.tearable) {
@@ -227,7 +193,7 @@ class SpringNode {
           if (neighbors[row][col] != null && (row != 1 || col != 1) && 
              (calcDiags == true || abs(row - col) % 2 != 0) && 
              Math.abs(pos.getLen() - neighbors[row][col].pos.getLen()) >= ClothParams.breakLen) {
-             //println("breaking a node at pos " + this.toString() + ", connects to node at pos " + neighbors[row][col].toString()); //<>//
+             //println("breaking a node at pos " + this.toString() + ", connects to node at pos " + neighbors[row][col].toString());
              SpringNode thisInNeighbor = neighbors[row][col].neighbors[1+(1 - row)][1+(1 - col)];
              if (thisInNeighbor != null) { synchronized (thisInNeighbor) { thisInNeighbor = null; } }
              if (neighbors[row][col] != null) { synchronized(neighbors[row][col]) { neighbors[row][col] = null; } }
@@ -236,64 +202,6 @@ class SpringNode {
       }
     }
     accForces = new PtVector(0,0,0);
-    userForce = new PtVector(1,1,1);
-  }
-  
-  // integrate half eulerian
-  void integrateHalf(double dt) {
-    og_vel = new PtVector(vel);
-    og_pos = new PtVector(pos);
-    
-    if (!fixed) { //only integrate if this node is allowed to move
-      PtVector acc = accForces.divideByConstant(mass); //a = F/m
-      acc.addVec(new PtVector(0,gravity,0)); //a += G
-      vel.addVec(acc.getMultByCon(0.5*dt)); // v += a*dt
-      synchronized (pos) { pos.addVec(vel.getMultByCon(0.5*dt)); } //p += v*dt
-    }
-    //check for breakages in neighbor springs
-    if (ClothParams.tearable) {
-      for (int row = 0; row < neighbors.length; row++) {
-        for (int col = 0; col < neighbors.length; col++) {
-          //if this is a valid spring connection and the length of the spring is over breakLen
-          if (neighbors[row][col] != null && (row != 1 || col != 1) && 
-             (calcDiags == true || abs(row - col) % 2 != 0) && 
-             Math.abs(pos.getLen() - neighbors[row][col].pos.getLen()) >= ClothParams.breakLen) {
-             //println("breaking a node at pos " + this.toString() + ", connects to node at pos " + neighbors[row][col].toString()); //<>//
-             SpringNode thisInNeighbor = neighbors[row][col].neighbors[1+(1 - row)][1+(1 - col)];
-             if (thisInNeighbor != null) { synchronized (thisInNeighbor) { thisInNeighbor = null; } }
-             if (neighbors[row][col] != null) { synchronized(neighbors[row][col]) { neighbors[row][col] = null; } }
-           }
-        }
-      }
-    }
-    accForces = new PtVector(0,0,0);
-  }
-  
-  // integrate the full time step to finish midpoint integration
-  void integrateFull(double dt) {    
-    if (!fixed) { //only integrate if this node is allowed to move
-      PtVector acc = accForces.divideByConstant(mass); //a = F/m
-      acc.addVec(new PtVector(0,gravity,0)); //a += G
-      vel = og_vel.getAddVectors(acc.getMultByCon(dt)); // v += a*dt
-      synchronized (pos) { pos = og_pos.getAddVectors(vel.getMultByCon(dt)); } //p += v*dt
-    }
-    //check for breakages in neighbor springs
-    if (ClothParams.tearable) {
-      for (int row = 0; row < neighbors.length; row++) {
-        for (int col = 0; col < neighbors.length; col++) {
-          //if this is a valid spring connection and the length of the spring is over breakLen
-          if (neighbors[row][col] != null && (row != 1 || col != 1) && 
-             (calcDiags == true || abs(row - col) % 2 != 0) && 
-             Math.abs(pos.getLen() - neighbors[row][col].pos.getLen()) >= ClothParams.breakLen) {
-             //println("breaking a node at pos " + this.toString() + ", connects to node at pos " + neighbors[row][col].toString()); //<>//
-             SpringNode thisInNeighbor = neighbors[row][col].neighbors[1+(1 - row)][1+(1 - col)];
-             if (thisInNeighbor != null) { synchronized (thisInNeighbor) { thisInNeighbor = null; } }
-             if (neighbors[row][col] != null) { synchronized(neighbors[row][col]) { neighbors[row][col] = null; } }
-           }
-        }
-      }
-    }
-    accForces = new PtVector(0,0,0);
-    userForce = new PtVector(1,1,1);
+    userForce = new PtVector(0,0,0);
   }
 }

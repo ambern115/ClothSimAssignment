@@ -27,8 +27,7 @@ float rotY, rotX;
 float zoom;
 float moveX, moveY;
 
-PImage trans;
-PImage murica;
+PImage img;
 PImage grass;
 
 enum FixedMethod {
@@ -43,12 +42,9 @@ enum FixedMethod {
 // static class accessible from anywhere that holds our tuning 
 // parameters for the simulation
 static class ClothParams {
-  //for eulerian: .0013 is the limit dt. for midpoint: .0015 is the limit dt.
-  static double goalDT = 0.0013; //the fraction of a second we simulate with each timestep
-  static boolean eulerian = false; //do we want to turn on eulerian integration? or midpoint integration?
-  static boolean semiImplicit = true; // do we want to use semi-implicit integration instead?
+  static double goalDT = 0.0002; //the fraction of a second we simulate with each timestep
   static final boolean multithread = true; //do we want to turn on multithreading?
-  static final boolean tearable = true; //cloth can be torn if it stretches too much
+  static final boolean tearable = false; //cloth can be torn if it stretches too much
   static final short numPhysThreads = 12; //the number of physics threads running in the background
   static boolean useDiags = false; //Do we want to use diagonal springs for extra stability?
   
@@ -56,32 +52,32 @@ static class ClothParams {
   static float radius = 2; //radius of particle sphere
   static float mass = 1; //mass of particle
   
-  static float restLen = 5; //the resting length of each springs
-  static float breakLen = restLen * 1.1; //the length a spring must be for it to break
+  static float restLen = 12; //the resting length of each springs
+  static float breakLen = restLen * 1.6; //the length a spring must be for it to break
   static double k = 10000; //stiffness of the spring
-  static double kd = 200; //damping factor of spring motion
-  static double gravity = 00; //acceleration due to gravity
+  static double kd = 1000; //damping factor of spring motion
+  static double gravity = 250; //acceleration due to gravity
   
   static double airDensity = .0012; //the density of the air, for calculating drag
   static double cd = 0.00001; //the drag coefficient
   
   // three components of air velocity, for drag. Can't make this into a static PtVector
-  static double airVelX =  32000;
-  static double airVelY = - 2000;
-  static double airVelZ =   4000;//55000;
+  static double airVelX =  1; //50000;
+  static double airVelY = 1;//- 5000;
+  static double airVelZ = 1;//  10000;//55000;
   static double userAirVelAdd = 100; //how much velocity per frame the user can add to air direction
   
   static double userPullValue = 5000; //strength of force added by user pull on spring
   
-  static int springSystemHeight = 50; //the number of nodes on the tall side of the spring system
-  static int springSystemLength = 70; //the number of nodes on the long side of the spring system
+  static int springSystemHeight = 26; //the number of nodes on the tall side of the spring system
+  static int springSystemLength = 35; //the number of nodes on the long side of the spring system
   static FixedMethod fixedSide = FixedMethod.FLAG_LEFT; //the side of the spring system that's fixed
 }
 
 // standing velocity of the air as a PtVector
 PtVector airVel = new PtVector(ClothParams.airVelX, ClothParams.airVelY, ClothParams.airVelZ);
 
-PtVector userForce = new PtVector(1,1,1); //vector storing user pulls on the string
+PtVector userForce = new PtVector(0,0,0); //vector storing user pulls on the string
 
 SpringSystem ss;
 
@@ -99,8 +95,7 @@ void setup() {
   ss = new SpringSystem(ClothParams.springSystemHeight, ClothParams.springSystemLength, 
                         ClothParams.fixedSide, new PtVector(width/10, 0, -100), airVel);
   //print(ss.toString());
-  trans = loadImage("transpride.png");
-  murica = loadImage("murica.jpg");
+  img = loadImage("transpride.png");
   grass = loadImage("grass.jpg");
   textureMode(NORMAL);
   
@@ -247,7 +242,7 @@ void displayHUD() {
           " (" + ClothParams.springSystemHeight + "x" + ClothParams.springSystemLength + ")" +
           "\n                  Wind Speed: " + airVel.toString() +
           "\n                  Main Thread Framerate: " + frameRate +
-          "\n                  Physics Updates per Second: " + ss.currPhysFramerate), 4, -18);
+          "\n                  Physics Updates per Frame: " + ss.currPhysFramerate), 4, -18);
 }
 
 /**
@@ -385,7 +380,7 @@ void draw() {
   }*/
   //else { println("lf_pressed is " + lf_pressed + ", dn_pressed is " + dn_pressed + ", rt_pressed is " + rt_pressed + ", up_pressed is " + up_pressed); }
   
-  addUserAirVel(); //adds user-determined air velocity to the system
+  addUserAirVel();
   
   if (!ClothParams.multithread) {
     double timesteps = elapsedTime / ClothParams.goalDT;
@@ -404,17 +399,36 @@ void draw() {
   }
   
   // ground....
+  textureWrap(REPEAT);
   beginShape();
   fill(255,255,255);
-  textureWrap(REPEAT);
+  
   texture(grass);
   vertex(-width*10, height*2, 1000, 0, 0);
-  vertex(width*11, height*2, 1000, 14, 0);
-  vertex(width*11, height*2, -100000, 14, 84);
-  vertex(-width*10, height*2, -100000, 0, 84);
+  vertex(width*11, height*2, 1000, 1, 0);
+  vertex(width*11, height*2, -100000, 1, 1);
+  vertex(-width*10, height*2, -100000, 0, 1);
   endShape();
+  //textureWrap(CLAMP);
+  
+  //left wall
+  /*beginShape();
+  fill(153,102,51);
+  vertex(0, height, 20);
+  vertex(0, height, -1000);
+  vertex(0, 0, -1000);
+  vertex(0, 0, 20);
+  endShape();*/
   
   //flagpole
-  cylinder(11, height*2, width/10, height*2, -100, 125, 125, 125, 30);
+  cylinder(11, height*2, width/10, height*2, -100, 125, 125, 125, 30);  
+  //right wall
+  /*beginShape();
+  fill(153,102,51);
+  vertex(width, height, 20);
+  vertex(width, height, -1000);
+  vertex(width, 0, -1000);
+  vertex(width, 0, 20);
+  endShape();*/
 }
   
